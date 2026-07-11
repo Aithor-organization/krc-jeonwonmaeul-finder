@@ -24,7 +24,9 @@ def test_landing_assets_are_served_locally():
         "/results.css": "text/css",
         "/sections.css": "text/css",
         "/responsive.css": "text/css",
+        "/pages.css": "text/css",
         "/app.js": "application/javascript",
+        "/pages.js": "application/javascript",
         "/assets/hero-rural-village.jpg": "image/jpeg",
     }
 
@@ -33,3 +35,16 @@ def test_landing_assets_are_served_locally():
         assert response.status_code == 200, path
         assert content_type in response.headers["content-type"], path
         assert response.content, path
+
+
+def test_information_pages_are_served():
+    pages = {
+        "/how-it-works.html": ("작동 방식", "요청 처리"),
+        "/data-evidence.html": ("데이터 근거", "세 개의 공공데이터"),
+    }
+
+    for path, expected_copy in pages.items():
+        response = client.get(path)
+        assert response.status_code == 200, path
+        for text in expected_copy:
+            assert text in response.text, (path, text)

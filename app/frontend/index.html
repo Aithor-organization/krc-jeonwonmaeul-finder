@@ -7,6 +7,10 @@
   <meta name="theme-color" content="#123b2a" />
   <title>전원마을 파인더 | 분양 가능한 전원마을 찾기</title>
   <link rel="preload" href="/assets/hero-rural-village.jpg" as="image" fetchpriority="high" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="/style.css" />
   <link rel="stylesheet" href="/results.css" />
   <link rel="stylesheet" href="/sections.css" />
@@ -14,6 +18,7 @@
 </head>
 <body>
   <a class="skip-link" href="#main-content">본문으로 바로가기</a>
+  <div class="brand-rule" aria-hidden="true"></div>
 
   <header class="site-header" aria-label="주요 메뉴">
     <a class="brand" href="#search" aria-label="전원마을 파인더 홈">
@@ -29,22 +34,15 @@
       </span>
     </a>
     <nav class="header-nav" aria-label="페이지 탐색">
-      <a href="#principles">선정 원리</a>
-      <a href="#evidence">데이터 근거</a>
+      <a href="/how-it-works.html">작동 방식</a>
+      <a href="/data-evidence.html">데이터 근거</a>
       <a class="nav-cta" href="#search">마을 찾기</a>
     </nav>
   </header>
 
   <main id="main-content">
     <section id="search" class="hero" aria-labelledby="hero-title">
-      <img
-        class="hero-image"
-        src="/assets/hero-rural-village.jpg"
-        width="1717"
-        height="916"
-        alt="산과 논 사이에 자리한 농촌 마을 풍경"
-        fetchpriority="high"
-      />
+      <img class="hero-image" src="/assets/hero-rural-village.jpg" width="1717" height="916" alt="산과 논 사이에 자리한 농촌 마을 풍경" fetchpriority="high" />
       <div class="hero-overlay" aria-hidden="true"></div>
 
       <div class="hero-inner">
@@ -54,11 +52,11 @@
             <span id="data-mode">데이터 모드 확인 중</span>
           </div>
 
-          <h1 id="hero-title">전원마을 파인더</h1>
-          <p class="hero-lead">지금 분양 가능한 곳만,<br />판단 근거까지 한 번에.</p>
+          <p class="hero-eyebrow">추천보다 확인 · 확신보다 근거</p>
+          <h1 id="hero-title">좋아 보이는 곳 말고,<br />지금 들어갈 수 있는 곳.</h1>
           <p class="hero-description">
-            흩어진 전원마을 분양정보와 농촌 현황을 한 문장으로 검색하세요.
-            AI가 대신 결정하지 않고, 확인한 공공데이터를 그대로 보여드립니다.
+            흩어진 전원마을 분양정보·농촌현황·지역 여건을 한 문장으로 검색하세요.
+            AI는 대신 결정하지 않고, 확인한 공공데이터를 <strong>근거와 함께</strong> 보여드립니다.
           </p>
 
           <form id="search-form" class="search-form" novalidate>
@@ -68,16 +66,7 @@
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.3-4.3" />
               </svg>
-              <input
-                id="query"
-                name="query"
-                type="search"
-                autocomplete="off"
-                enterkeyhint="search"
-                placeholder="예: 충남, 예산 2억, 분양 중인 조용한 마을"
-                aria-describedby="query-help"
-                required
-              />
+              <input id="query" name="query" type="search" autocomplete="off" enterkeyhint="search" placeholder="예: 충남, 예산 2억, 분양 중인 조용한 마을" aria-describedby="query-help" required />
               <button id="search-btn" type="submit">
                 <span>마을 찾기</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -92,22 +81,14 @@
           <div id="query-help" class="examples" aria-label="검색 예시">
             <span>이렇게 검색해 보세요</span>
             <button class="query-chip" type="button" data-query="충남, 예산 2억, 분양 진행 중인 조용한 전원마을">충남 · 2억 · 조용한 곳</button>
-            <button class="query-chip" type="button" data-query="전남 청년 창업농, 교통 좋은 곳">전남 · 청년 창업농</button>
+            <button class="query-chip" type="button" data-query="전남 청년 창업농, 관광 좋은 곳">전남 · 청년 창업농</button>
+            <button class="query-chip" type="button" data-query="강원, 분양 중, 스마트팜 인근 교통 좋은 곳">강원 · 스마트팜 인근</button>
           </div>
 
           <ul class="hero-proof" aria-label="서비스 핵심 원칙">
-            <li>
-              <strong>3종</strong>
-              <span>KRC 데이터 연계</span>
-            </li>
-            <li>
-              <strong>A-D</strong>
-              <span>근거 신뢰도 공개</span>
-            </li>
-            <li>
-              <strong>0건</strong>
-              <span>검색 문장 저장</span>
-            </li>
+            <li><strong>3종</strong><span>KRC 데이터 연계</span></li>
+            <li><strong>A–D</strong><span>근거 신뢰도 공개</span></li>
+            <li><strong>0건</strong><span>검색 문장 저장</span></li>
           </ul>
         </div>
       </div>
@@ -158,6 +139,9 @@
             전원마을 파인더는 막연한 라이프스타일 추천 대신 분양 단계, 분양율,
             계획세대수처럼 출처가 분명한 정보로 후보를 좁힙니다.
           </p>
+          <a class="section-link" href="/how-it-works.html">작동 방식 자세히 보기
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+          </a>
         </div>
 
         <ol class="process-list">
@@ -200,9 +184,7 @@
         <div class="evidence-grid">
           <article class="evidence-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <ellipse cx="12" cy="5" rx="9" ry="3" />
-              <path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5" />
-              <path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3" />
+              <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5" /><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3" />
             </svg>
             <div>
               <span>Data 01</span>
@@ -213,9 +195,7 @@
           </article>
           <article class="evidence-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M3 21h18" />
-              <path d="M6 21V9l6-4 6 4v12" />
-              <path d="M9 21v-6h6v6" />
+              <path d="M3 21h18" /><path d="M6 21V9l6-4 6 4v12" /><path d="M9 21v-6h6v6" />
             </svg>
             <div>
               <span>Data 02</span>
@@ -226,8 +206,7 @@
           </article>
           <article class="evidence-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 22a7 7 0 0 0 7-7c0-4-3.5-6.5-7-13-3.5 6.5-7 9-7 13a7 7 0 0 0 7 7Z" />
-              <path d="M8.5 15.5c.7 1.5 2 2.5 3.5 2.5" />
+              <path d="M12 22a7 7 0 0 0 7-7c0-4-3.5-6.5-7-13-3.5 6.5-7 9-7 13a7 7 0 0 0 7 7Z" /><path d="M8.5 15.5c.7 1.5 2 2.5 3.5 2.5" />
             </svg>
             <div>
               <span>Data 03</span>
@@ -243,25 +222,60 @@
             <strong>가뭄 정보는 추천 점수와 분리합니다.</strong>
             <p>같은 시군의 가뭄 단계가 특정 마을의 물 사정을 뜻하지 않기 때문입니다.</p>
           </div>
-          <a href="#search">
-            내 조건으로 확인하기
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12h14" />
-              <path d="m13 6 6 6-6 6" />
-            </svg>
+          <a href="/data-evidence.html">
+            데이터 근거 자세히
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
           </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="cta-inner">
+        <p class="section-kicker">지금 확인해 보세요</p>
+        <h2>내 조건에 맞는 전원마을,<br />근거까지 한 화면에서.</h2>
+        <div class="cta-actions">
+          <a class="btn-primary" href="#search">마을 찾기 시작
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+          </a>
+          <a class="btn-ghost" href="/how-it-works.html">작동 방식 보기</a>
         </div>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <div class="footer-inner">
+    <div class="footer-grid">
       <div>
-        <strong>전원마을 파인더</strong>
-        <p id="disclaimer">공공데이터 기반 참고정보이며 최종 계약·분양은 공식 기관 확인이 필요합니다.</p>
+        <div class="footer-brand">
+          <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-5.5 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg></span>
+          <strong>전원마을 파인더</strong>
+        </div>
+        <p class="footer-lead">지금 분양 가능한 전원마을을 공공데이터 근거와 함께 찾아주는 검색 서비스입니다.</p>
+        <p class="footer-lead" id="disclaimer">공공데이터 기반 참고정보이며 최종 계약·분양은 공식 기관 확인이 필요합니다.</p>
       </div>
-      <p>제3회 KRC 인공지능 디지털 혁신 공모전 · 서비스개발 부문</p>
+      <div class="footer-col">
+        <strong>페이지</strong>
+        <div class="footer-links">
+          <a href="#search">홈 · 마을 찾기</a>
+          <a href="/how-it-works.html">작동 방식</a>
+          <a href="/data-evidence.html">데이터 근거</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <strong>데이터 출처 · data.go.kr</strong>
+        <div class="footer-sources">
+          <span>전원마을 분양정보 <code>15104395</code></span>
+          <span>농촌마을현황 <code>15104291</code></span>
+          <span>논가뭄지도 <code>15117185</code></span>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bar">
+      <div class="footer-bar-inner">
+        <span>제3회 KRC 인공지능 디지털 혁신 공모전 · 서비스개발 부문</span>
+        <span class="mode-flag">sample-mode로 동작 중</span>
+      </div>
     </div>
   </footer>
 
@@ -274,8 +288,7 @@
         </div>
         <button id="modal-close" class="icon-button" type="button" aria-label="근거 리포트 닫기" title="닫기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
+            <path d="M18 6 6 18" /><path d="m6 6 12 12" />
           </svg>
         </button>
       </div>

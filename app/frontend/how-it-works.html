@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="자연어 한 문장이 근거 있는 후보 Top 3으로 바뀌기까지 — 전원마을 파인더의 8단계 결정론적 파이프라인." />
+  <meta name="theme-color" content="#123b2a" />
+  <title>작동 방식 | 전원마을 파인더</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/sections.css" />
+  <link rel="stylesheet" href="/pages.css" />
+</head>
+<body>
+  <a class="skip-link" href="#pipeline">본문으로 바로가기</a>
+  <div class="brand-rule" aria-hidden="true"></div>
+
+  <section class="page-hero">
+    <header class="site-header" aria-label="주요 메뉴">
+      <a class="brand" href="/index.html" aria-label="전원마을 파인더 홈">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-5.5 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg></span>
+        <span class="brand-copy"><strong>전원마을 파인더</strong><small>KRC 개방 공공데이터 활용</small></span>
+      </a>
+      <nav class="header-nav" aria-label="페이지 탐색">
+        <a href="/how-it-works.html" aria-current="page">작동 방식</a>
+        <a href="/data-evidence.html">데이터 근거</a>
+        <a class="nav-cta" href="/index.html#search">마을 찾기</a>
+      </nav>
+    </header>
+
+    <div class="page-hero-inner">
+      <p class="breadcrumb"><a href="/index.html">홈</a> <span>/ 작동 방식</span></p>
+      <p class="page-eyebrow">How it works</p>
+      <h1>AI는 결정하지 않습니다.<br />근거를 정리해 보여줍니다.</h1>
+      <p class="page-lead">자연어 한 문장이 근거 있는 후보 Top 3으로 바뀌기까지, 요청은 8단계의 결정론적 파이프라인을 지납니다. 순위를 만드는 것은 모델이 아니라 재현 가능한 코드입니다.</p>
+      <div class="hero-tags">
+        <span>결정론 우선 · AI 최소</span>
+        <span>Evidence Binding</span>
+        <span>조건 자동완화 금지</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="pipeline" class="page-section paper">
+    <div class="section-shell pipeline-layout">
+      <div class="pipeline-aside">
+        <p class="eyebrow">Request pipeline</p>
+        <h2>요청 처리<br />8단계</h2>
+        <p>브라우저가 <code>POST /api/search</code>를 보내면, 각 단계는 자신이 실패했을 때 무엇을 할지까지 정의합니다. 어느 단계도 결과를 조용히 지어내지 않습니다.</p>
+      </div>
+      <ol class="pipeline">
+        <li><span class="num">1</span><div class="body"><span class="mod">main.py · config.py</span><h3>데이터 모드 확인</h3><p>/api/health로 sample-mode 여부와 LLM 활성 상태를 반환합니다.</p><p class="fail">실패 시 → 화면에 "데이터 상태 확인 불가" 표시</p></div></li>
+        <li><span class="num">2</span><div class="body"><span class="mod">guards.py</span><h3>입력 보호 (Guard)</h3><p>주민번호·연락처·이메일을 마스킹하고, 개행 우회를 포함한 prompt injection 패턴을 검사합니다.</p><p class="fail">위험 입력 → 검색하지 않고 차단 사유 반환</p></div></li>
+        <li><span class="num">3</span><div class="body"><span class="mod">intent.py · llm_intent.py</span><h3>조건 해석 (Intent)</h3><p>지역·예산·분양단계·세대수·선호를 구조화된 ParsedQuery로 변환합니다.</p><p class="fail">LLM 실패 → 규칙 파서로 폴백 · 조건 미인식 시 전체 노출 금지</p></div></li>
+        <li><span class="num">4</span><div class="body"><span class="mod">clients.py</span><h3>데이터 조회 (Client)</h3><p>분양정보를 필터링하고, 법정동코드로 마을현황을 결합하며, 시군 가뭄정보를 조회합니다.</p><p class="fail">현재는 로컬 샘플 데이터 사용 · 상태 경고를 응답에 포함</p></div></li>
+        <li class="key"><span class="num">5</span><div class="body"><span class="mod">scoring.py</span><h3>필터 · 점수 (Scoring)</h3><p>진행단계 50%, 분양 가용성 30%, 선호 일치 20%로 적합도를 결정론적으로 계산합니다.</p><p class="fail">잘못된 숫자는 None 처리 · 진행단계·세대수 조건은 임의 완화 없음</p></div></li>
+        <li class="key"><span class="num">6</span><div class="body"><span class="mod">evidence.py</span><h3>근거 검증 (Evidence Binding)</h3><p>카드에 노출하는 모든 수치를 api + field + value로 바인딩하고 누락을 검사합니다.</p><p class="fail">미바인딩 수치 → 경고 · 확정값처럼 노출하지 않음</p></div></li>
+        <li><span class="num">7</span><div class="body"><span class="mod">orchestrator.py</span><h3>가뭄 참고 패널 분리</h3><p>상위 후보 시군의 농업가뭄 단계를 별도 패널로 표시합니다.</p><p class="fail">가뭄 수치는 마을 적합도 점수에 반영하지 않음</p></div></li>
+        <li><span class="num">8</span><div class="body"><span class="mod">orchestrator.py · app.js</span><h3>응답 조립 · 화면 렌더링</h3><p>백엔드는 Top N·근거·경고·최종확인 고지를 SearchResponse로 조립하고, 프론트엔드는 로딩·성공·빈 결과·오류 상태를 렌더링합니다.</p><p class="fail">데이터 없음 → 빈 결과와 다음 검색 안내 반환</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="page-section forest">
+    <div class="section-shell">
+      <p class="eyebrow">Deterministic scoring</p>
+      <h2 style="max-width:780px;">순위는 코드가 계산합니다. 언제나 같은 입력, 같은 결과.</h2>
+      <div class="formula">적합도 = <b>0.5</b> × 진행단계 + <b>0.3</b> × 분양 가용성 + <b>0.2</b> × 선호 일치도</div>
+      <div class="weight-grid">
+        <div class="weight-card"><div class="top"><strong>50%</strong><span>진행단계</span></div><div class="track"><i style="width:100%;"></i></div><p>분양중 1.0 · 분양예정 0.6 · 분양완료 0.1. 지금 들어갈 수 있는지가 가장 무겁습니다.</p></div>
+        <div class="weight-card"><div class="top"><strong>30%</strong><span>분양 가용성</span></div><div class="track"><i style="width:60%;"></i></div><p>(100 − 분양율) ÷ 100. 분양율이 낮을수록 남은 세대가 많다는 뜻입니다.</p></div>
+        <div class="weight-card"><div class="top"><strong>20%</strong><span>선호 일치도</span></div><div class="track"><i style="width:40%;"></i></div><p>조용함·빈집·교통 등 마을현황 자원과의 매칭 비율. 물 사정은 여기 포함하지 않습니다.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section paper">
+    <div class="section-shell">
+      <p class="eyebrow">Demo scenario</p>
+      <h2 style="max-width:720px;">"충남, 예산 2억, 분양 중인 조용한 마을"</h2>
+      <p class="lede">한 문장이 세 화면을 지나며 확정 데이터로 답이 됩니다. 발표 라이브 데모의 실제 흐름입니다.</p>
+      <div class="flow-grid">
+        <div class="flow-step">
+          <div class="flow-head"><span class="n">1</span><strong>조건 입력</strong></div>
+          <div class="flow-card dark">
+            <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.7);">원하는 지역과 조건을 입력하세요</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:12px 14px;border-radius:8px;background:#fff;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1f5a40" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg><span style="font-size:12px;color:#101914;">충남, 예산 2억, 분양 중인 조용한 마을</span></div>
+            <div style="display:flex;gap:6px;margin-top:12px;"><span style="padding:4px 9px;border-radius:999px;background:rgba(8,23,15,0.4);border:1px solid rgba(255,255,255,0.24);font-size:10px;color:rgba(255,255,255,0.85);">충남</span><span style="padding:4px 9px;border-radius:999px;background:rgba(8,23,15,0.4);border:1px solid rgba(255,255,255,0.24);font-size:10px;color:rgba(255,255,255,0.85);">2억</span><span style="padding:4px 9px;border-radius:999px;background:rgba(8,23,15,0.4);border:1px solid rgba(255,255,255,0.24);font-size:10px;color:rgba(255,255,255,0.85);">조용함</span></div>
+          </div>
+          <p>자연어를 지역·예산·단계·선호로 구조화합니다.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-head"><span class="n">2</span><strong>Top 3 카드</strong></div>
+          <div class="flow-card">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;"><div><div style="font-size:10px;font-weight:800;color:#f26a3d;">추천 01</div><div class="mini-serif" style="margin-top:3px;font-size:16px;">예산 대흥 전원마을</div><div style="font-size:11px;color:#5f6c64;">충청남도 예산군 대흥면</div></div><span style="padding:3px 8px;border-radius:999px;background:#dcebe1;color:#123b2a;font-size:10px;font-weight:800;">분양중</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:12px;background:#d7ddd7;border:1px solid #d7ddd7;border-radius:6px;overflow:hidden;"><div style="padding:8px 10px;background:#fff;"><div style="font-size:10px;color:#5f6c64;">분양율</div><div class="mini-serif" style="font-size:16px;">60%</div></div><div style="padding:8px 10px;background:#fff;"><div style="font-size:10px;color:#5f6c64;">계획세대수</div><div class="mini-serif" style="font-size:16px;">120</div></div></div>
+            <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:11px;"><span style="color:#5f6c64;">조건 적합도</span><strong>82%</strong></div>
+            <div style="height:5px;margin-top:5px;border-radius:999px;background:#e7ebe5;"><div style="height:100%;width:82%;border-radius:999px;background:#1f5a40;"></div></div>
+          </div>
+          <p>진행단계·분양율은 확정 데이터입니다.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-head"><span class="n">3</span><strong>근거 리포트</strong></div>
+          <div class="flow-card">
+            <div style="font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#f26a3d;">Evidence report</div>
+            <div class="mini-serif" style="font-size:15px;">예산 대흥 전원마을</div>
+            <table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:10px;">
+              <tr style="color:#5f6c64;"><td style="padding:5px 4px;border-bottom:1px solid #eee;">진행단계</td><td style="padding:5px 4px;border-bottom:1px solid #eee;">15104395</td><td style="padding:5px 4px;border-bottom:1px solid #eee;text-align:right;font-weight:800;color:#101914;">분양중</td></tr>
+              <tr style="color:#5f6c64;"><td style="padding:5px 4px;border-bottom:1px solid #eee;">분양율</td><td style="padding:5px 4px;border-bottom:1px solid #eee;">15104395</td><td style="padding:5px 4px;border-bottom:1px solid #eee;text-align:right;font-weight:800;color:#101914;">60%</td></tr>
+              <tr style="color:#5f6c64;"><td style="padding:5px 4px;border-bottom:1px solid #eee;">인구</td><td style="padding:5px 4px;border-bottom:1px solid #eee;">15104291</td><td style="padding:5px 4px;border-bottom:1px solid #eee;text-align:right;font-weight:800;color:#101914;">320명</td></tr>
+              <tr style="color:#5f6c64;"><td style="padding:5px 4px;">가뭄단계</td><td style="padding:5px 4px;">15117185</td><td style="padding:5px 4px;text-align:right;font-weight:800;color:#101914;">주의</td></tr>
+            </table>
+          </div>
+          <p>모든 수치를 API·필드·값에 연결합니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section white">
+    <div class="section-shell">
+      <p class="eyebrow">Design principles</p>
+      <h2>여섯 가지 설계 원칙</h2>
+      <div class="card-grid-3">
+        <div class="cell"><div class="idx">01</div><h3>결정론 우선, AI 최소</h3><p>필터·점수·결합·근거 검증은 코드로 재현합니다. LLM은 자연어 구조화만 맡고 순위는 만들지 않습니다.</p></div>
+        <div class="cell"><div class="idx">02</div><h3>Evidence Binding</h3><p>화면의 수치는 api + field + value 근거가 있어야 합니다. 데이터에 없는 값은 모델이 보완하지 않습니다.</p></div>
+        <div class="cell"><div class="idx">03</div><h3>조건을 몰래 완화하지 않음</h3><p>명시한 조건에 결과가 없으면 다른 단계·작은 지구를 대신 보여주지 않습니다. 빈 결과가 잘못된 추천보다 낫습니다.</p></div>
+        <div class="cell"><div class="idx">04</div><h3>상관관계와 인과관계 분리</h3><p>시군 가뭄정보는 특정 마을의 물 사정을 증명하지 않습니다. 참고 패널에만 표시하고 점수에 반영하지 않습니다.</p></div>
+        <div class="cell"><div class="idx">05</div><h3>실패를 숨기지 않음</h3><p>sample-mode 여부, 필터 불가 사유, LLM 폴백을 경고에 기록하고 모든 응답에 최종확인 문구를 부착합니다.</p></div>
+        <div class="cell"><div class="idx">06</div><h3>개인정보와 외부호출 경계</h3><p>검색 문장은 저장하지 않고 PII를 마스킹합니다. 외부호출은 공공데이터 호스트 allowlist 안에서만 허용합니다.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="cta-inner">
+      <h2>직접 검색하면서 확인해 보세요.</h2>
+      <p class="lede" style="margin:16px auto 0;">샘플 데이터로 검색부터 근거 리포트까지 전체 흐름을 실행할 수 있습니다.</p>
+      <div class="cta-actions">
+        <a class="btn-primary" href="/index.html#search">마을 찾기
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+        </a>
+        <a class="btn-ghost" href="/data-evidence.html">데이터 근거 보기</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-5.5 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg></span><strong>전원마을 파인더</strong></div>
+        <p class="footer-lead">지금 분양 가능한 전원마을을 공공데이터 근거와 함께 찾아주는 검색 서비스입니다. 공공데이터 기반 참고정보이며 최종 계약·분양은 공식 기관 확인이 필요합니다.</p>
+      </div>
+      <div class="footer-col"><strong>페이지</strong><div class="footer-links"><a href="/index.html">홈 · 마을 찾기</a><a href="/how-it-works.html">작동 방식</a><a href="/data-evidence.html">데이터 근거</a></div></div>
+      <div class="footer-col"><strong>데이터 출처 · data.go.kr</strong><div class="footer-sources"><span>전원마을 분양정보 <code>15104395</code></span><span>농촌마을현황 <code>15104291</code></span><span>논가뭄지도 <code>15117185</code></span></div></div>
+    </div>
+    <div class="footer-bar"><div class="footer-bar-inner"><span>제3회 KRC 인공지능 디지털 혁신 공모전 · 서비스개발 부문</span><span class="mode-flag">sample-mode로 동작 중</span></div></div>
+  </footer>
+</body>
+</html>

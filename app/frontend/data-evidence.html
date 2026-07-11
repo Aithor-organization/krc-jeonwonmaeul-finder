@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="전원마을 파인더가 사용하는 KRC 공공데이터 3종과 신뢰도 등급, 환각방지 원칙, 자주 묻는 질문." />
+  <meta name="theme-color" content="#123b2a" />
+  <title>데이터 근거 | 전원마을 파인더</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/sections.css" />
+  <link rel="stylesheet" href="/pages.css" />
+</head>
+<body>
+  <a class="skip-link" href="#datasets">본문으로 바로가기</a>
+  <div class="brand-rule" aria-hidden="true"></div>
+
+  <section class="page-hero">
+    <header class="site-header" aria-label="주요 메뉴">
+      <a class="brand" href="/index.html" aria-label="전원마을 파인더 홈">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-5.5 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg></span>
+        <span class="brand-copy"><strong>전원마을 파인더</strong><small>KRC 개방 공공데이터 활용</small></span>
+      </a>
+      <nav class="header-nav" aria-label="페이지 탐색">
+        <a href="/how-it-works.html">작동 방식</a>
+        <a href="/data-evidence.html" aria-current="page">데이터 근거</a>
+        <a class="nav-cta" href="/index.html#search">마을 찾기</a>
+      </nav>
+    </header>
+
+    <div class="page-hero-inner">
+      <p class="breadcrumb"><a href="/index.html">홈</a> <span>/ 데이터 근거</span></p>
+      <p class="page-eyebrow">Data &amp; Evidence</p>
+      <h1>모든 수치는<br />어디서 왔는지 말합니다.</h1>
+      <p class="page-lead">전원마을 파인더는 한국농어촌공사가 공공데이터포털에 개방한 3종 데이터를 사용합니다. 화면의 모든 값에는 출처 API·필드·기준일이 붙고, 확인할 수 없는 값은 지어내지 않습니다.</p>
+    </div>
+  </section>
+
+  <section class="notice-ribbon">
+    <div class="inner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+      <span>현재는 <strong>sample-mode</strong>입니다 — 키 없이 전체 흐름을 검증하기 위한 로컬 샘플 데이터로 동작합니다. live-mode는 KRC 활용신청 승인과 응답 계약 검증 후 연결됩니다.</span>
+    </div>
+  </section>
+
+  <section id="datasets" class="page-section paper">
+    <div class="section-shell">
+      <p class="eyebrow">Public datasets</p>
+      <h2>세 개의 공공데이터</h2>
+
+      <article class="dataset">
+        <div>
+          <div class="head"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5" /><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3" /></svg></span><span>Data 01 · 핵심</span></div>
+          <h3>전원마을 분양정보</h3>
+          <p>"지금 분양 가능한가"를 판단하는 확정 데이터입니다. 진행단계·분양율·계획세대수로 후보의 실제 입주 가능성을 계산합니다.</p>
+          <code class="api-id">data.go.kr · 15104395</code>
+          <div class="field-chips"><span>지구명</span><span>시도·시군구·읍면동</span><span>법정동코드</span><span>계획세대수</span><span>진행단계</span><span>분양율</span></div>
+        </div>
+        <div class="data-table">
+          <div class="cap">샘플 응답</div>
+          <table>
+            <thead><tr><th>지구명</th><th>진행단계</th><th class="r">분양율</th><th class="r">세대수</th></tr></thead>
+            <tbody>
+              <tr><td>예산 대흥</td><td>분양중</td><td class="r b">60%</td><td class="r">120</td></tr>
+              <tr><td>곡성 오곡</td><td>분양중</td><td class="r b">80%</td><td class="r">60</td></tr>
+              <tr><td>구례 마산</td><td>분양예정</td><td class="r b">0%</td><td class="r">100</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="dataset">
+        <div>
+          <div class="head"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18" /><path d="M6 21V9l6-4 6 4v12" /><path d="M9 21v-6h6v6" /></svg></span><span>Data 02 · 보완</span></div>
+          <h3>농촌마을현황</h3>
+          <p>분양지구가 자리한 마을의 기본정보입니다. 법정동코드로 분양정보와 직접 결합해 인구·빈집·지역 자원을 함께 보여줍니다.</p>
+          <code class="api-id">data.go.kr · 15104291</code>
+          <div class="field-chips"><span>마을명</span><span>인구</span><span>빈집수</span><span>지역 자원</span></div>
+        </div>
+        <div class="data-table">
+          <div class="cap">샘플 응답</div>
+          <table>
+            <thead><tr><th>마을명</th><th class="r">인구</th><th class="r">빈집</th><th>자원</th></tr></thead>
+            <tbody>
+              <tr><td>대흥마을</td><td class="r">320명</td><td class="r">8호</td><td>조용함·과수</td></tr>
+              <tr><td>오곡마을</td><td class="r">210명</td><td class="r">5호</td><td>하천 인접</td></tr>
+              <tr><td>서면마을</td><td class="r">600명</td><td class="r">20호</td><td>스마트팜 인근</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="dataset">
+        <div>
+          <div class="head"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-4-3.5-6.5-7-13-3.5 6.5-7 9-7 13a7 7 0 0 0 7 7Z" /><path d="M8.5 15.5c.7 1.5 2 2.5 3.5 2.5" /></svg></span><span>Data 03 · 참고</span></div>
+          <h3>논가뭄지도</h3>
+          <p>상위 후보 시군의 농업가뭄 단계를 참고로 제공합니다. 시군 단위 정보는 특정 마을의 물 사정을 증명하지 않으므로 <strong>점수에 반영하지 않고</strong> 기준일과 함께 별도 패널로만 표시합니다.</p>
+          <code class="api-id">data.go.kr · 15117185</code>
+          <div class="field-chips"><span>가뭄단계</span><span>저수율</span><span>평년 대비</span><span>기준일자</span></div>
+        </div>
+        <div class="data-table">
+          <div class="cap">샘플 응답 · 기준일 2026-07-20</div>
+          <table>
+            <thead><tr><th>시군</th><th>가뭄단계</th><th class="r">평년 대비</th></tr></thead>
+            <tbody>
+              <tr><td>예산군</td><td><span class="pill caution">주의</span></td><td class="r">58%</td></tr>
+              <tr><td>곡성군</td><td><span class="pill alert">경계</span></td><td class="r">48%</td></tr>
+              <tr><td>홍천군</td><td><span class="pill normal">정상</span></td><td class="r">85%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="page-section forest">
+    <div class="section-shell">
+      <div class="evidence-header">
+        <p class="section-kicker">Confidence grade</p>
+        <h2>데이터를 어떻게 결합했는지,<br />등급으로 밝힙니다.</h2>
+        <p>분양정보와 마을현황을 어떤 키로 연결했는지에 따라 A~D 신뢰도를 표시합니다. 등급은 카드마다 그대로 노출됩니다.</p>
+      </div>
+      <div class="grade-grid">
+        <div class="grade-card"><span class="badge-lg badge-a">A</span><h3>법정동코드 직접 매칭</h3><p>분양지구와 마을현황이 같은 법정동코드로 정확히 결합된 경우.</p></div>
+        <div class="grade-card"><span class="badge-lg badge-b">B</span><h3>시군구 단위 매칭</h3><p>코드가 일치하지 않아 같은 시군구 수준에서 연결한 경우.</p></div>
+        <div class="grade-card"><span class="badge-lg badge-c">C</span><h3>마을현황 결합 불가</h3><p>분양정보만 확인되고 마을 기본정보를 붙이지 못한 경우.</p></div>
+        <div class="grade-card"><span class="badge-lg badge-d">D</span><h3>근거 부족</h3><p>필드 매칭 근거가 충분하지 않아 확정값으로 다루지 않는 경우.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section paper">
+    <div class="section-shell">
+      <p class="eyebrow">Honesty by design</p>
+      <h2 style="max-width:720px;">지어내지 않는 것이 기능입니다.</h2>
+      <div class="trust-grid">
+        <div class="trust-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg><h3>없는 값은 "확인 불가"</h3><p>공공데이터에 없는 분양가 등은 추정하지 않고 경고 또는 "확인 불가"로 명시합니다.</p></div>
+        <div class="trust-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg><h3>물 정보는 점수와 분리</h3><p>시군 가뭄 단계는 마을 적합도에 반영하지 않고 참고 패널로만, 기준일과 함께 제공합니다.</p></div>
+        <div class="trust-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /></svg><h3>검색어 무저장 · PII 마스킹</h3><p>검색 문장은 기본 저장하지 않고, 파싱 전에 주민번호·연락처·이메일을 마스킹합니다.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section white">
+    <div class="section-shell faq-layout">
+      <div class="faq-aside">
+        <p class="eyebrow">FAQ</p>
+        <h2>자주 묻는 질문</h2>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item open">
+          <button class="faq-q" type="button">지금 보이는 결과는 실제 분양 정보인가요? <span class="sign">&minus;</span></button>
+          <p class="faq-a">아니요. 현재는 sample-mode로, 키 없이 전체 흐름을 검증하기 위한 로컬 샘플 데이터로 동작합니다. 화면과 API 모두 이 상태를 숨기지 않고 표시하며, live-mode는 KRC 공공데이터 활용신청 승인과 실제 응답 계약 검증 후 연결할 예정입니다.</p>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" type="button">AI가 추천 순위를 정하나요? <span class="sign">+</span></button>
+          <p class="faq-a">아니요. 필터·점수·데이터 결합·근거 검증은 모두 재현 가능한 코드로 처리합니다. 적합도 = 0.5×진행단계 + 0.3×분양 가용성 + 0.2×선호 일치도로 결정론적으로 계산하며, LLM은 선택적으로 자연어를 구조화하는 역할만 맡습니다.</p>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" type="button">가뭄 정보는 왜 점수에 반영하지 않나요? <span class="sign">+</span></button>
+          <p class="faq-a">논가뭄지도는 시군 단위 정보라 특정 마을의 물 사정을 증명하지 않기 때문입니다. 상관관계와 인과관계를 분리하기 위해 가뭄 단계와 평년 대비 수치는 지역 참고 패널에만 기준일과 함께 표시하고, 마을 적합도 점수에는 넣지 않습니다.</p>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" type="button">조건에 맞는 마을이 없으면 어떻게 되나요? <span class="sign">+</span></button>
+          <p class="faq-a">요청한 지역·진행단계·최소 세대수 조건을 만족하는 결과가 없으면 다른 조건의 마을을 임의로 섞지 않고 빈 결과를 보여줍니다. 빈 결과가 잘못된 추천보다 낫다는 원칙이며, 조건을 조금 넓혀 다시 검색하도록 안내합니다.</p>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" type="button">제 검색어는 저장되나요? <span class="sign">+</span></button>
+          <p class="faq-a">검색 문장은 기본적으로 저장하지 않습니다. 입력은 파싱 전에 주민번호·연락처·이메일 등 개인식별정보를 마스킹하며, prompt injection 패턴을 차단하고 출력의 PII를 재검사합니다.</p>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" type="button">실제 KRC 데이터는 언제 연결되나요? <span class="sign">+</span></button>
+          <p class="faq-a">공공데이터포털 활용신청이 승인되고 실제 오퍼레이션명·조회 파라미터·응답 스키마를 검증한 뒤 live-mode를 활성화합니다. 그전까지는 sample-mode를 유지하며, live 호출이 실패하면 sample로 폴백하고 그 상태를 응답 경고에 노출합니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="cta-inner">
+      <h2>근거를 직접 열어 보세요.</h2>
+      <p class="lede" style="margin:16px auto 0;">검색 결과의 각 카드에서 사용한 API·필드·값을 근거 리포트로 확인할 수 있습니다.</p>
+      <div class="cta-actions">
+        <a class="btn-primary" href="/index.html#search">마을 찾기
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+        </a>
+        <a class="btn-ghost" href="/how-it-works.html">작동 방식 보기</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-5.5 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg></span><strong>전원마을 파인더</strong></div>
+        <p class="footer-lead">지금 분양 가능한 전원마을을 공공데이터 근거와 함께 찾아주는 검색 서비스입니다. 공공데이터 기반 참고정보이며 최종 계약·분양은 공식 기관 확인이 필요합니다.</p>
+      </div>
+      <div class="footer-col"><strong>페이지</strong><div class="footer-links"><a href="/index.html">홈 · 마을 찾기</a><a href="/how-it-works.html">작동 방식</a><a href="/data-evidence.html">데이터 근거</a></div></div>
+      <div class="footer-col"><strong>데이터 출처 · data.go.kr</strong><div class="footer-sources"><span>전원마을 분양정보 <code>15104395</code></span><span>농촌마을현황 <code>15104291</code></span><span>논가뭄지도 <code>15117185</code></span></div></div>
+    </div>
+    <div class="footer-bar"><div class="footer-bar-inner"><span>제3회 KRC 인공지능 디지털 혁신 공모전 · 서비스개발 부문</span><span class="mode-flag">sample-mode로 동작 중</span></div></div>
+  </footer>
+
+  <script src="/pages.js"></script>
+</body>
+</html>
