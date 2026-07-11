@@ -5,6 +5,7 @@ import config
 import evidence as evidence_mod
 import guards
 import intent
+import llm_intent
 import scoring
 from clients import KrcDataClient
 from models import DroughtPanel, Evidence, SearchResponse, VillageCard
@@ -51,7 +52,14 @@ class Orchestrator:
             if blocked:
                 return self._empty(intent.parse(""), reasons)
             warnings.extend(reasons)
-            parsed = intent.parse(cleaned)
+            if config.LLM_ENABLED:
+                parsed, meta = llm_intent.parse(cleaned)
+                if meta.get("model"):
+                    warnings.append(f"자연어 파싱 모델: {meta['model']} ({meta['tier']} tier)")
+                if meta.get("fallback"):
+                    warnings.append(f"LLM 파싱 폴백(규칙 파서 사용): {meta.get('error', '')}")
+            else:
+                parsed = intent.parse(cleaned)
 
         # 조건 미인식 → 전체 덤프 대신 안내 (두 입력 경로 공통)
         if not (parsed.region.sido or parsed.sale_stage or parsed.budget_max_krw

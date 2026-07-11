@@ -25,6 +25,20 @@ PYTHONPATH="$(pwd)" .venv/bin/python -m pytest tests -q
 - **sample-mode (기본)**: `KRC_SERVICE_KEY` 미설정 시 `data/samples/*.json`로 동작 (오프라인·발표 백업).
 - **live-mode**: 공공데이터포털 활용신청 승인 후 `export KRC_SERVICE_KEY=...` → `clients.py`의 live 경로 활성화(엔드포인트 오퍼레이션명·`county` 파라미터는 실호출로 확정 필요 — 기술명세 §14).
 
+## LLM 자연어 파서 모델 라우팅 (선택)
+기본은 결정론 규칙 파서(키 불필요). `USE_LLM=1` 설정 시 OpenAI 모델로 파싱하며 **질의 복잡도에 따라 3개 티어로 라우팅**:
+- simple → `gpt-5.4-nano` · medium → `gpt-5.4-mini` · complex → `gpt-5.6-luna`
+
+```bash
+export USE_LLM=1                     # LLM 파서 활성
+# 키는 코드/커밋에 두지 않음 — 파일 또는 환경에서 런타임 로드:
+export OPENAI_KEY_FILE=/path/to/keyfile.md   # "openai api key : sk-..." 줄 파싱 (기본값 설정됨)
+# 또는  export OPENAI_API_KEY=sk-...
+```
+- 모델 오버라이드: `LLM_MODEL_SIMPLE`/`LLM_MODEL_MEDIUM`/`LLM_MODEL_COMPLEX` 환경변수.
+- **폴백**: LLM 호출 실패 시 자동으로 규칙 파서 사용(무중단). PII는 호출 전 guard가 마스킹.
+- 헬스체크(`/api/health`)에 `llm_enabled`·`llm_models` 표시. 라이브 테스트: `USE_LLM=1 pytest tests/test_llm_live.py`.
+
 ## 구조
 ```
 app/backend/  models·config·guards·intent·clients·scoring·evidence·orchestrator·main + data/samples + tests

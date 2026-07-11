@@ -27,6 +27,16 @@ HTTP_TIMEOUT_S = 5.0
 
 DISCLAIMER = "공공데이터 기반 참고정보이며 최종 계약·분양은 공식 기관 확인이 필요합니다."
 
+# --- LLM 자연어 파서 모델 라우팅 (선택, 기술명세 §4.2 Option A) ---
+# 키는 코드/커밋에 두지 않고 파일에서 런타임 로드. USE_LLM=1일 때만 활성(기본 결정론 파서).
+OPENAI_KEY_FILE = os.environ.get("OPENAI_KEY_FILE", "/home/cafe99/workspace/키저장.md")
+OPENAI_KEY_ENV = os.environ.get("OPENAI_API_KEY") or None
+LLM_ENABLED: bool = os.environ.get("USE_LLM", "").lower() in ("1", "true", "yes")
+LLM_MODEL_SIMPLE = os.environ.get("LLM_MODEL_SIMPLE", "gpt-5.4-nano")
+LLM_MODEL_MEDIUM = os.environ.get("LLM_MODEL_MEDIUM", "gpt-5.4-mini")
+LLM_MODEL_COMPLEX = os.environ.get("LLM_MODEL_COMPLEX", "gpt-5.6-luna")
+LLM_TIMEOUT_S = float(os.environ.get("LLM_TIMEOUT_S", "20"))
+
 # 가뭄단계 기준 (논가뭄지도 실측: 평년대비 임계)
 def drought_stage_from_ratio(normal_ratio: float | None) -> str:
     if normal_ratio is None:

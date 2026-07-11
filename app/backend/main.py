@@ -22,7 +22,16 @@ orch = Orchestrator()
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "sample_mode": config.SAMPLE_MODE}
+    return {
+        "status": "ok",
+        "sample_mode": config.SAMPLE_MODE,
+        "llm_enabled": config.LLM_ENABLED,
+        "llm_models": {
+            "simple": config.LLM_MODEL_SIMPLE,
+            "medium": config.LLM_MODEL_MEDIUM,
+            "complex": config.LLM_MODEL_COMPLEX,
+        } if config.LLM_ENABLED else None,
+    }
 
 
 @app.post("/api/search", response_model=SearchResponse)
