@@ -31,15 +31,16 @@ _SIDO_ALIASES: dict[str, str] = {
 # 긴 것부터 매칭 (충청남도가 충남/충청보다 먼저)
 _SIDO_KEYS = sorted(_SIDO_ALIASES.keys(), key=len, reverse=True)
 
-_PREF_KEYWORDS: list[tuple[str, str]] = [
-    ("조용", "조용함"), ("한적", "조용함"),
-    ("교통", "교통편의"), ("접근성", "교통편의"),
-    ("스마트팜", "스마트팜"),
-    ("청년", "청년창업"),
-    ("빈집", "빈집적음"),
-    ("물", "물사정"),
-    ("과수", "과수재배"),
-    ("축산", "축산"),
+# label ← 트리거 문구들 (부분문자열 오탐 방지: "물"은 "건물/동물"에 걸리지 않도록 구체 문구만)
+_PREF_KEYWORDS: list[tuple[list[str], str]] = [
+    (["조용", "한적"], "조용함"),
+    (["교통", "접근성"], "교통편의"),
+    (["스마트팜"], "스마트팜"),
+    (["청년"], "청년창업"),
+    (["빈집"], "빈집적음"),
+    (["물 걱정", "물걱정", "물 사정", "물사정", "농업용수", "용수"], "물사정"),
+    (["과수"], "과수재배"),
+    (["축산"], "축산"),
 ]
 
 
@@ -51,15 +52,25 @@ def _parse_sido(text: str) -> str | None:
 
 
 def _parse_budget(text: str) -> int | None:
-    m = re.search(r"(\d+)\s*억(?:\s*(\d+)\s*천)?", text)
+    """소수 억(1.5억), 억+천/만 복합(1억5천, 1억 5000만), 단독 만/천만 처리."""
+    won = 0
+    found = False
+    m = re.search(r"(\d+(?:\.\d+)?)\s*억", text)
     if m:
-        won = int(m.group(1)) * 100_000_000
-        if m.group(2):
-            won += int(m.group(2)) * 10_000_000
+        won += int(round(float(m.group(1)) * 100_000_000))
+        found = True
+        # 억 뒤의 천(5천→5천만) 또는 만(5000만)
+        after = re.search(r"억\s*(\d[\d,]*)\s*천", text)
+        if after:
+            won += int(after.group(1).replace(",", "")) * 10_000_000
+        else:
+            after_m = re.search(r"억\s*(\d[\d,]*)\s*만", text)
+            if after_m:
+                won += int(after_m.group(1).replace(",", "")) * 10_000
         return won
-    m = re.search(r"(\d+)\s*천\s*만", text)
+    m = re.search(r"(\d[\d,]*)\s*천\s*만", text)
     if m:
-        return int(m.group(1)) * 10_000_000
+        return int(m.group(1).replace(",", "")) * 10_000_000
     m = re.search(r"(\d[\d,]*)\s*만\s*원?", text)
     if m:
         return int(m.group(1).replace(",", "")) * 10_000
@@ -67,12 +78,13 @@ def _parse_budget(text: str) -> int | None:
 
 
 def _parse_stage(text: str) -> list[str]:
+    # '분양' 문맥을 요구해 임의 문장의 '예정/완료' 오탐 방지
     stages: list[str] = []
     if re.search(r"분양\s*중|진행\s*중", text):
         stages.append("분양중")
-    if re.search(r"분양\s*예정|예정", text):
+    if re.search(r"분양\s*예정", text):
         stages.append("분양예정")
-    if re.search(r"분양\s*완료|완료", text):
+    if re.search(r"분양\s*완료", text):
         stages.append("분양완료")
     return stages
 
@@ -84,8 +96,8 @@ def _parse_household_min(text: str) -> int | None:
 
 def _parse_preferences(text: str) -> list[str]:
     found: list[str] = []
-    for kw, label in _PREF_KEYWORDS:
-        if kw in text and label not in found:
+    for triggers, label in _PREF_KEYWORDS:
+        if label not in found and any(t in text for t in triggers):
             found.append(label)
     return found
 

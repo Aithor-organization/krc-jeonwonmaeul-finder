@@ -16,9 +16,14 @@ def score_card(parsed, sale: dict, village: dict | None) -> tuple[float, str, li
         reasons.append(f"진행단계={stage}")
 
     rate = sale.get("분양율")
+    try:
+        rate = float(rate) if rate is not None else None
+    except (TypeError, ValueError):
+        rate = None
     if rate is not None:
-        avail = max(0.0, (100.0 - float(rate)) / 100.0)
-        reasons.append(f"분양율 {rate}%")
+        rate = max(0.0, min(100.0, rate))  # 0~100 범위 보정 (점수 왜곡 방지)
+        avail = (100.0 - rate) / 100.0
+        reasons.append(f"분양율 {rate:g}%")
     else:
         avail = 0.5
 

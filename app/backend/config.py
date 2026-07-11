@@ -10,7 +10,9 @@ FRONTEND_DIR = BASE_DIR.parent / "frontend"
 
 # 공공데이터포털 서비스키. 없으면 sample-mode(오프라인 샘플)로 동작.
 KRC_SERVICE_KEY: str | None = os.environ.get("KRC_SERVICE_KEY") or None
-SAMPLE_MODE: bool = KRC_SERVICE_KEY is None
+# live-mode 미구현 → 키 유무와 무관하게 항상 sample-mode (허위 live 표시 방지, 기술명세 §14)
+SAMPLE_MODE: bool = True
+LIVE_KEY_PRESENT: bool = KRC_SERVICE_KEY is not None
 
 # SSRF 방어 — 외부 호출 허용 호스트 (기술명세 §6.2)
 ALLOWLIST_HOSTS: frozenset[str] = frozenset({"apis.data.go.kr", "api.data.go.kr"})

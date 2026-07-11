@@ -11,8 +11,10 @@ from orchestrator import Orchestrator
 
 app = FastAPI(title="전원마을 파인더", version="1.0.0",
               description="KRC 공공데이터 기반 '분양 가능한 전원마을' 실시간 검색")
+# 공개 read-only API. 운영 배포 시 allow_origins를 실제 프론트 도메인으로 제한 권장.
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+    CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 orch = Orchestrator()
@@ -32,7 +34,21 @@ def search(req: SearchRequest) -> SearchResponse:
 def village(gu_id: str) -> dict:
     for s in orch.client.get_sales():
         if s.get("gu_id") == gu_id:
-            return {"sale": s, "village": orch.client.get_village(s.get("법정동코드"))}
+            v = orch.client.get_village(s.get("법정동코드"))
+            # 원본 dict 전체 노출 금지 — 허용 필드만 반환 (AC3/PII)
+            return {
+                "gu_id": s.get("gu_id"),
+                "gu_name": s.get("지구명"),
+                "sido": s.get("시도명"),
+                "sigungu": s.get("시군구"),
+                "eupmyeon": s.get("읍면동"),
+                "sale_stage": s.get("진행단계"),
+                "sale_rate": s.get("분양율"),
+                "planned_households": s.get("계획세대수"),
+                "population": v.get("인구") if v else None,
+                "vacant_houses": v.get("빈집수") if v else None,
+                "disclaimer": config.DISCLAIMER,
+            }
     return {"error": "not_found", "gu_id": gu_id}
 
 

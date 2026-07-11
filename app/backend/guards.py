@@ -6,8 +6,8 @@ from urllib.parse import urlparse
 
 from config import ALLOWLIST_HOSTS
 
-_RRN = re.compile(r"\d{6}[- ]?\d{7}")                       # 주민등록번호
-_PHONE = re.compile(r"01[016789][- ]?\d{3,4}[- ]?\d{4}")    # 휴대폰
+_RRN = re.compile(r"\d{6}[-. ]?\d{7}")                        # 주민등록번호
+_PHONE = re.compile(r"01[016789][-. ]?\d{3,4}[-. ]?\d{4}")    # 휴대폰(-, ., 공백 구분)
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 
 _INJECTION = [
@@ -26,8 +26,10 @@ def inspect_input(text: str | None) -> tuple[str, bool, list[str]]:
     reasons: list[str] = []
     cleaned = text
 
+    # 개행/다중공백을 정규화한 뒤 injection 검사 (개행 우회 방지)
+    norm = re.sub(r"\s+", " ", text)
     for pat in _INJECTION:
-        if pat.search(cleaned):
+        if pat.search(norm):
             return cleaned, True, ["prompt injection 의심 패턴 감지 — 요청 차단"]
 
     if _RRN.search(cleaned):
