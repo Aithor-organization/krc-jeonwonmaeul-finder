@@ -2,6 +2,16 @@
 
 > "지금 실제로 분양 가능한 전원마을을, 공공데이터 근거와 함께 한 화면에서 찾아준다."
 
+[![GitHub](https://img.shields.io/badge/GitHub-Aithor--organization%2Fkrc--jeonwonmaeul--finder-181717?logo=github&logoColor=white)](https://github.com/Aithor-organization/krc-jeonwonmaeul-finder)
+![Visibility](https://img.shields.io/badge/repo-private-red?logo=github&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-38%20passed%20%C2%B7%201%20skipped-brightgreen)
+![Status](https://img.shields.io/badge/status-MVP-orange)
+![Data](https://img.shields.io/badge/KRC%20OpenAPI-3%20datasets-2f855a)
+
+**저장소**: <https://github.com/Aithor-organization/krc-jeonwonmaeul-finder> (🔒 Private)
+
 ## 문서
 | 파일 | 성격 | 대상 |
 |---|---|---|
