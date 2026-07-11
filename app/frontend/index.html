@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>전원마을 파인더 — 분양 가능한 전원마을 찾기</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>전원마을 파인더</h1>
+    <p class="tagline">귀농지, 어디가 나에게 맞을까요? — 지금 <strong>분양 가능한 전원마을</strong>을 공공데이터로 찾아드립니다.</p>
+  </header>
+
+  <main>
+    <!-- ① 조건 입력 -->
+    <section id="view-input" class="view active" aria-label="조건 입력">
+      <label for="query" class="input-label">조건을 자연어로 입력하세요</label>
+      <div class="search-box">
+        <input id="query" type="text" autocomplete="off"
+               placeholder="예: 충남, 예산 2억, 분양 진행 중인 조용한 전원마을"
+               aria-label="검색 조건" />
+        <button id="search-btn" type="button">검색</button>
+      </div>
+      <div class="examples" aria-label="예시">
+        <button class="chip" type="button">충남, 예산 2억, 분양 진행 중인 조용한 전원마을</button>
+        <button class="chip" type="button">전남 청년 창업농, 교통 좋은 곳</button>
+        <button class="chip" type="button">빈집 적고 물 걱정 적은 지역</button>
+      </div>
+    </section>
+
+    <!-- ② 결과 -->
+    <section id="view-results" class="view" aria-label="검색 결과" hidden>
+      <div class="results-head">
+        <button id="back-btn" class="link-btn" type="button">← 다시 검색</button>
+        <p id="parsed-info" class="parsed-info" aria-live="polite"></p>
+      </div>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <div id="cards" class="cards"></div>
+    </section>
+  </main>
+
+  <!-- ③ 근거 리포트 모달 -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="modal-title">근거 리포트</h2>
+        <button id="modal-close" class="icon-btn" type="button" aria-label="닫기">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p id="disclaimer">공공데이터 기반 참고정보이며 최종 계약·분양은 공식 기관 확인이 필요합니다.</p>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
