@@ -1,7 +1,9 @@
-"""KRC 공공데이터 클라이언트 — sample-mode(키 없이 동작) + live 스텁 (기술명세 §3).
+"""KRC 공공데이터 클라이언트 (기술명세 §3).
 
-sample-mode: data/samples/*.json 로드·필터. live-mode: allowlist 검증 후 httpx 호출,
-실패 시 샘플 fallback + warning (오프라인 백업, 기술명세 §3.4).
+현재 구현: sample-mode만 동작 — data/samples/*.json 로드·필터 (키 없이 오프라인).
+live-mode(KRC_SERVICE_KEY 설정 시 apis.data.go.kr 실호출)는 **미구현 — 확장 예정**.
+live 연동 시 guards.is_allowed_host(SSRF allowlist)로 호스트 검증 후 httpx 호출,
+실패 시 샘플 fallback 예정 (기술명세 §3.4·§14). 현재 SSRF 가드는 live 경로 대비 유틸.
 """
 from __future__ import annotations
 

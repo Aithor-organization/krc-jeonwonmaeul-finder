@@ -38,6 +38,21 @@ def test_drought_panel_present_AC4():
     assert "drought_stage" in data["drought_panel"]
 
 
+def test_household_filter_applied():
+    """세대수 조건이 실제로 필터에 적용되는지 (계획세대수 기준)."""
+    r = client.post("/api/search", json={"query": "충남 100세대 이상"})
+    data = r.json()
+    assert len(data["top"]) >= 1
+    assert all(c["planned_households"] >= 100 for c in data["top"])
+
+
+def test_budget_honest_warning():
+    """예산 조건은 필터 미적용을 정직하게 고지."""
+    r = client.post("/api/search", json={"query": "충남 예산 2억 분양 중"})
+    data = r.json()
+    assert any("예산" in w and "적용되지" in w for w in data["warnings"])
+
+
 def test_unrecognized_query_no_dump():
     """조건 미인식 시 전체 마을을 덤프하지 않고 안내 (검색 정직성)."""
     r = client.post("/api/search", json={"query": "랜덤텍스트없는지역zzz"})

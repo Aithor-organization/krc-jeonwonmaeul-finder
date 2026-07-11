@@ -54,6 +54,18 @@ class Orchestrator:
             sales = self.client.get_sales(sido=sido, sigungu=parsed.region.sigungu)
             if sales:
                 warnings.append("요청한 진행단계 결과가 없어 전체 진행단계를 포함했습니다.")
+        # 세대수 조건 필터 (계획세대수 기준 — 데이터 존재)
+        if parsed.household_min:
+            filtered = [s for s in sales if (s.get("계획세대수") or 0) >= parsed.household_min]
+            if filtered:
+                sales = filtered
+            elif sales:
+                warnings.append(f"{parsed.household_min}세대 이상 조건에 맞는 지구가 없어 세대수 조건을 완화했습니다.")
+
+        # 예산 조건은 정직하게 처리 — KRC 분양정보에 분양가 필드가 없어 필터 미적용
+        if parsed.budget_max_krw:
+            warnings.append("예산은 참고용입니다 — 공공 분양정보에 분양가가 없어 예산 필터는 적용되지 않습니다. 분양가는 공식 분양처에서 확인하세요.")
+
         if not sales:
             warnings.append("조건에 맞는 전원마을 분양 정보를 찾지 못했습니다.")
 
