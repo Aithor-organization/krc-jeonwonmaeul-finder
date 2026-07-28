@@ -130,3 +130,33 @@ def test_settings_assets_are_served():
 def test_settings_reachable_from_every_page():
     for path in ("/", "/how-it-works.html", "/data-evidence.html"):
         assert '/settings.html' in client.get(path).text, path
+
+
+def test_no_undefined_css_classes_in_pages():
+    """HTML이 CSS에 없는 클래스를 쓰면 그 요소는 스타일 없이 렌더된다.
+
+    실제로 settings.html이 `.section-inner`(존재하지 않는 이름)를 써서
+    본문이 컨테이너를 못 잡고 뷰포트 끝까지 번졌다. 오타는 조용히 깨진다.
+    """
+    import re
+    from pathlib import Path
+
+    frontend = Path(__file__).resolve().parents[2] / "frontend"
+    css = "\n".join(p.read_text(encoding="utf-8") for p in frontend.glob("*.css"))
+
+    for html_path in sorted(frontend.glob("*.html")):
+        used = set()
+        for m in re.finditer(r'class="([^"]+)"', html_path.read_text(encoding="utf-8")):
+            used.update(m.group(1).split())
+        missing = sorted(
+            c for c in used
+            if not re.search(r"[.\s,]" + re.escape(c) + r"[\s,{:>.\[]", css)
+        )
+        assert not missing, f"{html_path.name}: CSS 미정의 클래스 {missing}"
+
+
+def test_settings_uses_shared_section_wrapper():
+    """폭 제한은 .section-shell이 담당한다 — 페이지마다 다른 래퍼를 만들지 않는다."""
+    html = client.get("/settings.html").text
+    assert 'class="section-shell' in html
+    assert "section-inner" not in html

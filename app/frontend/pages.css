@@ -367,8 +367,8 @@
 /* ── 설정 페이지 (/settings.html) ───────────────────────────────── */
 .settings-layout {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 56px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(520px, 1.2fr);
+  gap: 80px;
   align-items: start;
 }
 
@@ -387,21 +387,20 @@
 .settings-card {
   display: grid;
   gap: 10px;
-  padding: 28px;
+  padding: 32px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--paper);
+  box-shadow: var(--shadow-low);
 }
 
 .settings-state {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-bottom: 6px;
-  padding: 11px 14px;
-  border-radius: var(--radius-sm);
-  background: var(--white);
-  border: 1px solid var(--border);
+  margin-bottom: 14px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid var(--border);
   font-size: 13px;
   color: var(--muted);
 }
@@ -414,7 +413,7 @@
   background: var(--border);
 }
 
-.settings-state[data-state="set"] { color: var(--forest-700); border-color: var(--forest-100); }
+.settings-state[data-state="set"] { color: var(--forest-700); font-weight: 700; }
 .settings-state[data-state="set"] .settings-dot { background: var(--forest-700); }
 
 .settings-card label {
