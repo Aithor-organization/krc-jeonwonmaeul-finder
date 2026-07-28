@@ -123,9 +123,16 @@
     font-size: 14px;
   }
 
+  /* 2칼럼 2행 배치 — 아이콘/입력은 1행, 버튼은 2행 전체.
+     기본 스타일의 `grid-column: 3`을 여기서 되돌리지 않으면 3번 칼럼이
+     새로 생겨 레이아웃이 어긋난다 (칼럼은 2개뿐이다). */
+  .search-icon { grid-column: 1; grid-row: 1; }
+  #query { grid-column: 2; grid-row: 1; }
+
   #search-btn {
     min-width: 0;
     grid-column: 1 / -1;
+    grid-row: 2;
     border-top: 1px solid #dc5c33;
     border-left: 0;
   }

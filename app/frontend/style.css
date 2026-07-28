@@ -335,7 +335,12 @@ h3,
   box-shadow: 0 14px 36px rgba(5, 16, 10, 0.3), 0 0 0 3px rgba(242, 106, 61, 0.4);
 }
 
+/* 🔴 세 자식의 칼럼을 명시한다 — 자동 배치에 맡기면 하나가 렌더되지 않을 때
+   나머지가 한 칸씩 당겨진다. 실제로 아이콘이 안 뜨는 환경에서 입력란이
+   아이콘 칼럼(50px)으로 밀리고 버튼이 1fr을 통째로 먹어 화면의 92%를 차지했다
+   (2026-07-28 사용자 제보 → 브라우저에서 재현·측정). */
 .search-icon {
+  grid-column: 1;
   width: 21px;
   height: 21px;
   justify-self: center;
@@ -343,6 +348,7 @@ h3,
 }
 
 #query {
+  grid-column: 2;
   width: 100%;
   min-width: 0;
   height: 100%;
@@ -360,6 +366,7 @@ h3,
 }
 
 #search-btn {
+  grid-column: 3;
   display: inline-flex;
   height: 100%;
   min-width: 148px;
