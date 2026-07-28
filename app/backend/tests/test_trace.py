@@ -126,3 +126,78 @@ def test_empty_result_has_no_trace():
     r = client.post("/api/search", json={"query": "asdfqwer"}).json()
     assert r["top"] == []
     assert r["trace"] is None
+
+
+# --- 실데이터에서 발견된 결함 3건의 회귀 방지 (2026-07-28 검증 세션) ---
+def _dupe_sales():
+    """원천이 같은 gu_id로 값이 다른 레코드를 반환하는 상황 (실측 13쌍)."""
+    return [
+        {"gu_id": "DUP", "지구명": "달두루", "시도명": "충청북도", "시군구": "충주시",
+         "읍면동": "수안보면", "진행단계": "분양중", "분양율": 0, "계획세대수": 57},
+        {"gu_id": "DUP", "지구명": "달두루", "시도명": "충청북도", "시군구": "충주시",
+         "읍면동": "수안보면", "진행단계": "분양완료", "분양율": 0, "계획세대수": 57},
+        {"gu_id": "OK", "지구명": "앙성", "시도명": "충청북도", "시군구": "충주시",
+         "읍면동": "앙성면", "진행단계": "분양중", "분양율": 0, "계획세대수": 30},
+    ]
+
+
+def _orch_with(sales):
+    from clients import KrcDataClient
+    c = KrcDataClient(sample_mode=True)
+    c.ensure_loaded()
+    c._sale = sales
+    return Orchestrator(client=c)
+
+
+def test_duplicate_gu_id_does_not_corrupt_breakdown():
+    """🔴 gu_id로 dict 키를 잡으면 한 카드가 남의 산식을 물어 좌변≠우변이 된다.
+
+    실제로 "0.5×1 + 0.3×1 + 0.2×0.5 = 0.45"(좌변은 0.9)가 화면에 표시됐다 —
+    할루시네이션 아님을 증명하는 패널이 산수가 안 맞는 식을 보여준 셈.
+    """
+    from models import ParsedQuery, Region
+    r = _orch_with(_dupe_sales()).search(
+        structured=ParsedQuery(region=Region(sido="충청북도"), confidence=0.9, raw="충북"),
+        top_n=10)
+    for cs in r.trace.scores:
+        assert abs(sum(t.contribution for t in cs.terms) - cs.total) < 0.002, \
+            f"{cs.gu_name}: 산식 좌변 != 표시 총점"
+
+
+def test_duplicate_gu_id_is_deduped_and_disclosed():
+    from models import ParsedQuery, Region
+    r = _orch_with(_dupe_sales()).search(
+        structured=ParsedQuery(region=Region(sido="충청북도"), confidence=0.9, raw="충북"),
+        top_n=10)
+    ids = [c.gu_id for c in r.top]
+    assert len(ids) == len(set(ids)), "같은 지구가 두 번 표시됨"
+    assert any("중복" in w for w in r.warnings), "중복 사실을 숨기면 안 된다"
+    # 지구는 뒤로 가지 않는다 — 더 진행된 단계가 최신
+    assert next(c for c in r.top if c.gu_name == "달두루").sale_stage == "분양완료"
+
+
+def test_deterministic_is_false_when_llm_parsed(monkeypatch):
+    """🔴 LLM이 문장을 해석하면 같은 질의도 다르게 읽힐 수 있다 (5회 중 1회 실측).
+
+    화면이 '같은 문장 → 같은 값'이라 단언하면 그 자체가 검증되지 않은 주장이 된다.
+    """
+    import config
+    import intent
+    import llm_intent
+    monkeypatch.setattr(config, "LLM_ENABLED", True)
+    monkeypatch.setattr(llm_intent, "parse",
+                        lambda q, api_key=None: (intent.parse(q),
+                                                 {"model": "gpt-x", "tier": "simple",
+                                                  "fallback": False}))
+    assert _search().trace.deterministic is False
+
+
+def test_deterministic_is_true_without_llm():
+    assert _search().trace.deterministic is True
+
+
+def test_frontend_footer_respects_deterministic_flag():
+    """두 경우의 문구가 달라야 한다 — 하나로 고정하면 한쪽이 거짓이 된다."""
+    app_js = client.get("/app.js").text
+    assert "trace.deterministic" in app_js
+    assert "결과가 바뀔 수 있습니다" in app_js

@@ -33,6 +33,32 @@ def _int(v):
     return int(n) if n is not None else None
 
 
+# 지구는 뒤로 가지 않는다 — 중복 레코드 중 더 진행된 쪽이 최신 상태다
+_STAGE_ORDER = {"분양예정": 0, "분양중": 1, "분양완료": 2}
+
+
+def _dedupe_by_gu_id(paired: list[tuple]) -> tuple[list[tuple], int]:
+    """같은 지구가 값이 다른 채 중복 등록된 것을 하나로 합친다.
+
+    원천 API가 같은 inbpnCode로 서로 모순되는 레코드를 반환한다 (13쌍 실측:
+    달두루=입주완료 vs 주택건축, 공정=50 vs 54세대). 그대로 두면 Top 3에 같은
+    이름이 두 번 나오고 세대수·단계가 어긋나 보인다. 정렬 순서는 보존한다.
+    """
+    best: dict[str, tuple] = {}
+    order: list[str] = []
+    conflicts = 0
+    for card, bd in paired:
+        key = card.gu_id or f"_{id(card)}"
+        if key not in best:
+            best[key] = (card, bd)
+            order.append(key)
+            continue
+        conflicts += 1
+        if _STAGE_ORDER.get(card.sale_stage, -1) > _STAGE_ORDER.get(best[key][0].sale_stage, -1):
+            best[key] = (card, bd)
+    return [best[k] for k in order], conflicts
+
+
 class Orchestrator:
     def __init__(self, client: KrcDataClient | None = None) -> None:
         self.client = client or KrcDataClient()
@@ -54,6 +80,7 @@ class Orchestrator:
 
         # 1) Input Guard + 파싱 (structured 경로도 guard 적용 — 우회 방지)
         parser_label = RULE_PARSER
+        llm_used = False
         if structured is not None:
             _, blocked, _reasons = guards.inspect_input(getattr(structured, "raw", "") or "")
             if blocked:
@@ -77,6 +104,7 @@ class Orchestrator:
                 # 폴백이면 실제로 문장을 해석한 건 규칙 파서다 — 모델명을 적으면 거짓이 된다
                 if meta.get("model") and not meta.get("fallback"):
                     parser_label = f"{meta['model']} ({meta['tier']} tier)"
+                    llm_used = True
             else:
                 parsed = intent.parse(cleaned)
 
@@ -147,12 +175,15 @@ class Orchestrator:
 
         # 3) 점수 + 카드 (물 정보 미포함, 수치 안전 변환, 출력 가드)
         cards: list[VillageCard] = []
-        breakdowns: dict[str, list[dict]] = {}   # gu_id → 산식 전개 (표시 전용)
+        # 🔴 gu_id로 키를 잡으면 안 된다 — 원천 API가 같은 inbpnCode로 값이 다른
+        # 레코드를 13쌍 반환한다(실측). dict 키가 충돌하면 한 카드가 다른 지구의
+        # 산식을 물고 와서 "0.5×1 + 0.3×1 + 0.2×0.5 = 0.45" 같은 틀린 식이 표시된다.
+        # 카드와 1:1로 붙는 리스트를 쓴다 (인덱스 = 카드 순서).
+        breakdowns: list[list[dict]] = []
         for sale in sales:
             village = self.client.get_village(sale.get("법정동코드"))
             score, grade, reasons = scoring.score_card(parsed, sale, village)
-            breakdowns[str(sale.get("gu_id", ""))] = scoring.score_breakdown(
-                parsed, sale, village)
+            breakdowns.append(scoring.score_breakdown(parsed, sale, village))
             cards.append(VillageCard(
                 gu_id=str(sale.get("gu_id", "")),
                 gu_name=guards.inspect_output(str(sale.get("지구명", ""))),
@@ -167,8 +198,21 @@ class Orchestrator:
                 score=score, confidence_grade=grade,
                 reasons=[guards.inspect_output(r) for r in reasons],
             ))
-        cards.sort(key=lambda c: (c.score, 100 - (c.sale_rate if c.sale_rate is not None else 100)), reverse=True)
-        top = cards[:top_n]
+        # 카드와 산식을 한 쌍으로 묶어 정렬 — 따로 정렬하면 짝이 어긋난다
+        paired = list(zip(cards, breakdowns))
+        paired.sort(key=lambda cb: (cb[0].score,
+                                    100 - (cb[0].sale_rate if cb[0].sale_rate is not None else 100)),
+                    reverse=True)
+
+        paired, conflicts = _dedupe_by_gu_id(paired)
+        if conflicts:
+            warnings.append(
+                f"공공데이터에 같은 지구가 서로 다른 값으로 {conflicts}건 중복 등록되어 있어, "
+                "가장 진행된 단계의 기록만 표시합니다.")
+
+        cards = [c for c, _ in paired]
+        top_pairs = paired[:top_n]
+        top = [c for c, _ in top_pairs]
         if cards:
             funnel.append(FunnelStep(
                 label=f"점수순 상위 {top_n}건 표시", count=len(top),
@@ -206,14 +250,19 @@ class Orchestrator:
         trace = SearchTrace(
             parser=parser_label,
             llm_scope=LLM_SCOPE,
+            # 🔴 LLM이 문장을 해석하면 같은 질의도 다른 조건으로 읽힐 수 있다
+            # (실측: "전남에서 조용하고 아직 안 팔린 마을" 5회 중 1회가 분양완료로 해석).
+            # 순위 계산은 언제나 결정론이지만, 그 앞단이 흔들리면 최종 결과는
+            # 재현되지 않는다 — 여기서 참이라고 말하면 화면이 거짓말을 한다.
+            deterministic=llm_used is False,
             formula=scoring.FORMULA,
             funnel=funnel,
             scores=[
                 CardScore(
                     gu_id=c.gu_id, gu_name=c.gu_name, total=c.score,
-                    terms=[ScoreTerm(**t) for t in breakdowns.get(c.gu_id, [])],
+                    terms=[ScoreTerm(**t) for t in bd],
                 )
-                for c in top
+                for c, bd in top_pairs
             ],
         )
 
