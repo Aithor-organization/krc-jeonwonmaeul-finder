@@ -15,7 +15,7 @@ import time
 
 import config
 import krc_live
-from krc_mapping import STAGE_NOTE, VILLAGE_NOTE, map_sales
+from krc_mapping import RATE_NOTE, STAGE_NOTE, VILLAGE_NOTE, map_sales
 
 
 def _load(name: str) -> list[dict]:
@@ -66,7 +66,7 @@ class KrcDataClient:
             self.sample_mode = False
             self.live_active = True
             self.warnings = []
-            self.notes = [STAGE_NOTE, VILLAGE_NOTE]
+            self.notes = [STAGE_NOTE, VILLAGE_NOTE, RATE_NOTE]
         except krc_live.KrcApiError as e:
             self._retry_at = time.monotonic() + config.KRC_RETRY_AFTER_S
             self._fall_back(

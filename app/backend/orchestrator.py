@@ -108,10 +108,23 @@ class Orchestrator:
             else:
                 parsed = intent.parse(cleaned)
 
-            # 시군구는 데이터에 존재하는 이름으로만 보강 (파서는 시도까지만 인식)
-            if not parsed.region.sigungu:
-                parsed.region.sigungu = intent.match_sigungu(
-                    cleaned, self.client.available_sigungu())
+            # 시군구는 데이터에 존재하는 이름으로만 확정한다 — LLM 답도 예외가 아니다.
+            # LLM은 "충남 예산 2억"의 '예산'을 시군구와 금액 양쪽으로 동시에 읽는다
+            # (실측: sigungu='예산' + budget=2억 → 예산군 1건으로 좁혀져 0건 반환).
+            # match_sigungu가 그 충돌 가드를 이미 갖고 있으므로 통과시켜 검증한다.
+            matched = intent.match_sigungu(cleaned, self.client.available_sigungu())
+            if parsed.region.sigungu and matched != parsed.region.sigungu:
+                if matched:
+                    parsed.region.sigungu = matched          # 예: '예산' → '예산군' 정규화
+                else:
+                    # 데이터에 없거나 금액과 충돌 → 지역 조건으로 쓰지 않는다
+                    dropped = parsed.region.sigungu
+                    parsed.region.sigungu = None
+                    notes.append(
+                        f"'{dropped}'은(는) 지역 조건으로 쓰지 않았습니다 "
+                        "— 데이터에 없는 이름이거나 금액 표현과 겹칩니다.")
+            elif not parsed.region.sigungu:
+                parsed.region.sigungu = matched
 
         # 조건 미인식 → 전체 덤프 대신 안내 (두 입력 경로 공통)
         if not (parsed.region.sido or parsed.region.sigungu or parsed.sale_stage

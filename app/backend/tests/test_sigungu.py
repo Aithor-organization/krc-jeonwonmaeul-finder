@@ -75,3 +75,49 @@ def test_budget_query_still_works_via_api():
     assert d["query_parsed"]["region"]["sido"] == "충청남도"
     assert d["query_parsed"]["region"]["sigungu"] is None
     assert len(d["top"]) >= 1
+
+
+# --- LLM이 넘긴 시군구도 같은 가드를 통과해야 한다 (2026-07-28) ---
+def test_llm_sigungu_is_validated_against_budget_guard(monkeypatch):
+    """LLM은 "충남 예산 2억"의 '예산'을 시군구와 금액 양쪽으로 읽는다 (실측).
+
+    그대로 두면 예산군 1건으로 좁혀져 0건이 나온다 — 규칙 파서가 가진
+    충돌 가드를 LLM 답에도 똑같이 적용해야 한다.
+    """
+    import config
+    import intent
+    import llm_intent
+    from models import ParsedQuery, Region
+    from orchestrator import Orchestrator
+
+    monkeypatch.setattr(config, "LLM_ENABLED", True)
+    monkeypatch.setattr(
+        llm_intent, "parse",
+        lambda q, api_key=None: (
+            ParsedQuery(region=Region(sido="충청남도", sigungu="예산"),
+                        budget_max_krw=200_000_000, sale_stage=["분양중"],
+                        confidence=0.9, raw=q),
+            {"model": "gpt-x", "tier": "medium", "fallback": False}))
+
+    r = Orchestrator().search(query="충남 예산 2억 분양 중")
+    assert r.query_parsed.region.sigungu is None, "금액과 겹치는 이름을 지역으로 쓰면 안 된다"
+    assert r.query_parsed.budget_max_krw == 200_000_000
+    assert any("지역 조건으로 쓰지" in n for n in r.notes), "무시한 사실을 알려야 한다"
+
+
+def test_llm_sigungu_shorthand_is_normalized(monkeypatch):
+    """'곡성' → '곡성군'처럼 데이터에 있는 정식 이름으로 정규화한다."""
+    import config
+    import llm_intent
+    from models import ParsedQuery, Region
+    from orchestrator import Orchestrator
+
+    monkeypatch.setattr(config, "LLM_ENABLED", True)
+    monkeypatch.setattr(
+        llm_intent, "parse",
+        lambda q, api_key=None: (
+            ParsedQuery(region=Region(sido="전라남도", sigungu="곡성"),
+                        confidence=0.9, raw=q),
+            {"model": "gpt-x", "tier": "simple", "fallback": False}))
+    r = Orchestrator().search(query="전남 곡성 마을")
+    assert r.query_parsed.region.sigungu == "곡성군"

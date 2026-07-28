@@ -31,6 +31,11 @@ VILLAGE_NOTE = (
     "live-mode에서는 마을 상세(인구·빈집수)를 제공하지 않습니다"
     " — 농촌마을현황 데이터가 전국 2.8만 건 규모라 별도 조인 설계가 필요합니다."
 )
+RATE_NOTE = (
+    "분양율은 원천 데이터의 84%(141/167건)가 0으로 비어 있어 대부분 '확인 불가'로 표시됩니다"
+    " — 이미 입주가 끝난 지구 17건도 0으로 기록돼 있어 미입력으로 판단했습니다."
+    " 이 경우 적합도의 가용성 항은 중립값으로 계산합니다."
+)
 
 
 def normalize_items(body: dict | None) -> list[dict]:
@@ -84,6 +89,27 @@ def map_households(value: object) -> int | None:
     return int(value) or None
 
 
+def map_sale_rate(value: object) -> float | None:
+    """분양율. 0과 100 초과는 '확인 불가'로 넘긴다 (map_households와 같은 원칙).
+
+    0을 '0% 분양'으로 읽으면 안 되는 이유 — 실측 근거:
+      · 167건 중 141건(84%)이 0
+      · 그중 '건축완료후 입주단계'(=이미 입주)가 17건. 사람이 사는 지구가
+        0% 팔렸을 수는 없으므로 이 0은 **미입력**이다
+      · 원천에 150%도 1건 존재 — 필드 자체가 신뢰 구간을 벗어난다
+
+    "아직 분양 전이라 0"과 "입력이 안 돼서 0"을 데이터로 구분할 방법이 없다.
+    구분 불가한 값을 단정적 수치로 표시하면 근거 바인딩은 통과하면서
+    의미만 틀리는, 가장 잡기 어려운 형태의 거짓이 된다.
+    """
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None
+    v = float(value)
+    if v <= 0 or v > 100:
+        return None
+    return v
+
+
 def map_sale_item(raw: dict) -> dict:
     """전원마을 분양정보 1건 → 내부 한글 스키마 (샘플 데이터와 동일 키)."""
     return {
@@ -95,7 +121,7 @@ def map_sale_item(raw: dict) -> dict:
         "법정동코드": str(raw.get("legalCode")) if raw.get("legalCode") is not None else None,
         "계획세대수": map_households(raw.get("planHscnt")),
         "진행단계": map_stage(raw.get("progrsStep")),
-        "분양율": raw.get("bndeLttotHscntPer"),
+        "분양율": map_sale_rate(raw.get("bndeLttotHscntPer")),
     }
 
 

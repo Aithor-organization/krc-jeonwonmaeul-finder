@@ -112,3 +112,61 @@ def test_map_sales_batch_and_sido_conversion():
     rows = km.map_sales([REAL_ITEM, {**REAL_ITEM, "sidoNm": "전남광주통합특별시"}])
     assert len(rows) == 2
     assert rows[1]["시도명"] == "전라남도"
+
+
+# --- 분양율 신뢰성 (2026-07-28 실데이터 검증에서 발견) ---
+def test_sale_rate_zero_is_unknown_not_zero_percent():
+    """0은 '0% 분양'이 아니라 미입력이다.
+
+    근거: 167건 중 141건(84%)이 0이고, 그중 '건축완료후 입주단계'가 17건.
+    이미 입주한 지구가 0% 팔렸을 수 없으므로 0은 미입력 신호다.
+    """
+    from krc_mapping import map_sale_rate
+    assert map_sale_rate(0) is None
+    assert map_sale_rate(0.0) is None
+
+
+def test_sale_rate_over_100_is_rejected():
+    """원천에 150%가 실재한다 — 물리적으로 불가능하므로 값으로 쓰지 않는다."""
+    from krc_mapping import map_sale_rate
+    assert map_sale_rate(150) is None
+    assert map_sale_rate(101) is None
+
+
+def test_sale_rate_valid_range_passes_through():
+    from krc_mapping import map_sale_rate
+    assert map_sale_rate(35) == 35.0
+    assert map_sale_rate(100) == 100.0
+
+
+def test_sale_rate_non_numeric_is_none():
+    from krc_mapping import map_sale_rate
+    for v in (None, "", "35", True, [], {}):
+        assert map_sale_rate(v) is None, v
+
+
+def test_unknown_rate_falls_to_neutral_not_max_availability():
+    """미상을 0으로 두면 가용성 만점을 받아 순위가 왜곡된다."""
+    import scoring
+    from models import ParsedQuery
+    terms = scoring.score_breakdown(ParsedQuery(), {"진행단계": "분양중", "분양율": None}, None)
+    avail = next(t for t in terms if t["label"] == "가용성")
+    assert avail["value"] == 0.5, "미상은 중립값이어야 한다"
+    assert "미상" in avail["basis"]
+
+
+def test_rate_note_is_disclosed_in_live_mode(monkeypatch):
+    """대부분이 '확인 불가'로 보이는 이유를 사용자에게 알려야 한다."""
+    import config
+    import krc_live
+    from clients import KrcDataClient
+    from krc_mapping import RATE_NOTE
+    monkeypatch.setattr(config, "KRC_SERVICE_KEY", "KEY")
+    monkeypatch.setattr(krc_live, "fetch_sales", lambda key, **kw: [
+        {"inbpnCode": "X", "zoneName": "가", "sidoNm": "충청남도", "sggNm": "예산군",
+         "emdNm": "대흥면", "legalCode": 1, "planHscnt": 30,
+         "progrsStep": "주택건축 단계", "bndeLttotHscntPer": 0}])
+    c = KrcDataClient(sample_mode=False)
+    c.ensure_loaded()
+    assert RATE_NOTE in c.notes
+    assert c.get_sales()[0]["분양율"] is None
