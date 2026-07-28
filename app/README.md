@@ -32,6 +32,9 @@ PYTHONPATH="$(pwd)" .venv/bin/python -m pytest tests -q
 **키 우선순위**: 요청 본문 `openai_api_key`(BYOK) > `OPENAI_API_KEY` > `OPENAI_KEY_FILE`.
 요청에 키가 오면 `USE_LLM` 설정과 무관하게 LLM 경로가 켜집니다.
 
+방문자는 `/settings.html`에서 키를 넣습니다 — 저장 규칙은 `frontend/key-store.js` 단일 출처이며
+`sessionStorage`에만 둡니다. 서버 측 키(B)는 **로컬 개발 전용**입니다.
+
 ```bash
 # (A) 사용자가 화면/요청에서 직접 제공 — 배포 환경 권장. 서버 설정 불필요
 curl -sX POST :8000/api/search -H 'Content-Type: application/json' \

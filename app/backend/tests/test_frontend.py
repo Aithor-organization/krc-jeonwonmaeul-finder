@@ -72,3 +72,61 @@ def test_information_pages_are_served():
         assert response.status_code == 200, path
         for text in expected_copy:
             assert text in response.text, (path, text)
+
+
+def test_settings_page_is_served():
+    """LLM 키 입력은 전용 설정 페이지가 담당한다."""
+    response = client.get("/settings.html")
+    assert response.status_code == 200
+    for text in ("설정", 'id="openai-key"', 'id="key-test"', 'id="key-clear"'):
+        assert text in response.text, text
+
+
+def test_key_store_is_single_source():
+    """저장 규칙이 한 곳에만 있어야 두 화면이 어긋나지 않는다."""
+    store = client.get("/key-store.js").text
+    app_js = client.get("/app.js").text
+    settings_js = client.get("/settings.js").text
+
+    assert "krc.openai_key" in store
+    # 검색·설정 화면은 저장소를 쓰기만 하고 저장 키 이름을 각자 들지 않는다
+    assert "krc.openai_key" not in app_js
+    assert "krc.openai_key" not in settings_js
+    assert "KrcKeyStore" in app_js and "KrcKeyStore" in settings_js
+
+
+def test_key_store_uses_session_not_local_storage():
+    """localStorage는 정적 페이지에서 남의 브라우저에 키를 무기한 남긴다.
+
+    주석에는 "왜 안 쓰는지"가 적혀 있으므로 주석을 걷어내고 실제 사용만 본다.
+    """
+    import re
+    store = client.get("/key-store.js").text
+    code = re.sub(r"/\*.*?\*/", "", store, flags=re.S)          # 블록 주석 제거
+    code = re.sub(r"^\s*//.*$", "", code, flags=re.M)           # 줄 주석 제거
+
+    assert "sessionStorage" in code
+    assert "localStorage" not in code
+
+
+def test_index_shows_parser_path_and_links_to_settings():
+    """어느 파서로 검색되는지 감추지 않고, 키 입력 경로를 안내한다."""
+    html = client.get("/").text
+    assert 'id="ai-status"' in html
+    assert '/settings.html' in html
+    assert 'id="openai-key"' not in html, "키 입력란은 설정 페이지에만 둔다"
+
+
+def test_settings_assets_are_served():
+    for path, allowed in {
+        "/settings.js": ("application/javascript", "text/javascript"),
+        "/key-store.js": ("application/javascript", "text/javascript"),
+    }.items():
+        response = client.get(path)
+        assert response.status_code == 200, path
+        assert any(ct in response.headers["content-type"] for ct in allowed), path
+
+
+def test_settings_reachable_from_every_page():
+    for path in ("/", "/how-it-works.html", "/data-evidence.html"):
+        assert '/settings.html' in client.get(path).text, path

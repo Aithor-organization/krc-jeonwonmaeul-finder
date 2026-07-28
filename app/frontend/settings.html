@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="자연어 검색에 쓸 OpenAI API 키를 이 브라우저에만 저장합니다. 서버에 보관하거나 기록하지 않습니다." />
+  <meta name="theme-color" content="#123b2a" />
+  <title>설정 | 전원마을 파인더</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/sections.css" />
+  <link rel="stylesheet" href="/pages.css" />
+</head>
+<body>
+  <a class="skip-link" href="#llm-key">본문으로 바로가기</a>
+  <div class="brand-rule" aria-hidden="true"></div>
+
+  <section class="page-hero">
+    <header class="site-header" aria-label="주요 메뉴">
+      <a class="brand" href="/index.html" aria-label="전원마을 파인더 홈">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-5.5 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg></span>
+        <span class="brand-copy"><strong>전원마을 파인더</strong><small>KRC 개방 공공데이터 활용</small></span>
+      </a>
+      <nav class="header-nav" aria-label="페이지 탐색">
+        <a href="/how-it-works.html">작동 방식</a>
+        <a href="/data-evidence.html">데이터 근거</a>
+        <a href="/settings.html" aria-current="page">설정</a>
+        <a class="nav-cta" href="/index.html#search">마을 찾기</a>
+      </nav>
+    </header>
+
+    <div class="page-hero-inner">
+      <p class="breadcrumb"><a href="/index.html">홈</a> <span>/ 설정</span></p>
+      <p class="page-eyebrow">Settings</p>
+      <h1>키는 이 브라우저에만<br />머무릅니다.</h1>
+      <p class="page-lead">자연어 문장을 검색 조건으로 바꿀 때만 OpenAI API를 씁니다. 키를 넣지 않아도 검색은 규칙 기반 파서로 그대로 동작하며, 어느 쪽이든 화면에 표시되는 수치와 근거는 공공데이터에서 그대로 가져옵니다.</p>
+      <div class="hero-tags">
+        <span>서버 저장 없음</span>
+        <span>탭 종료 시 소멸</span>
+        <span>선택 기능</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section white" id="llm-key">
+    <div class="section-inner settings-layout">
+      <div class="settings-aside">
+        <p class="eyebrow">OpenAI API key</p>
+        <h2>AI 파싱 키</h2>
+        <p class="lede">“충남에서 세대수 많고 아직 안 팔린 데”처럼 조건이 문장에 흩어져 있을 때, 이 키로 문장을 구조화합니다. 순위와 숫자는 모델이 만들지 않습니다.</p>
+        <p class="settings-hint">키가 없다면 <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com/api-keys</a>에서 발급할 수 있습니다. 사용료는 발급한 본인 계정에 청구됩니다.</p>
+      </div>
+
+      <form class="settings-card" id="key-form" autocomplete="off">
+        <div class="settings-state" id="key-state" data-state="empty">
+          <span class="settings-dot" aria-hidden="true"></span>
+          <span id="key-state-text">저장된 키 없음 — 규칙 파서로 동작 중</span>
+        </div>
+
+        <label for="openai-key">API 키</label>
+        <input id="openai-key" name="openai-key" type="password" inputmode="text"
+               autocomplete="off" spellcheck="false" placeholder="sk-..."
+               aria-describedby="key-help" />
+        <p class="settings-error" id="key-error" role="alert" hidden></p>
+
+        <div class="settings-actions">
+          <button type="submit" class="btn-primary" id="key-save">저장</button>
+          <button type="button" class="btn-ghost" id="key-test">키 확인</button>
+          <button type="button" class="settings-clear" id="key-clear">삭제</button>
+        </div>
+
+        <p class="settings-result" id="key-result" role="status" hidden></p>
+
+        <p class="settings-help" id="key-help">
+          키는 이 브라우저 탭의 <code>sessionStorage</code>에만 저장됩니다. 탭을 닫으면 사라지고,
+          다른 탭·다른 기기와 공유되지 않습니다. 검색할 때마다 요청에 실려 OpenAI 호출에만 쓰이며
+          <strong>서버에 저장하거나 로그에 남기지 않습니다</strong>.
+        </p>
+      </form>
+    </div>
+  </section>
+
+  <section class="page-section paper">
+    <div class="section-inner">
+      <p class="eyebrow">What changes</p>
+      <h2>키를 넣으면 무엇이 달라지나</h2>
+      <div class="settings-compare">
+        <div class="settings-compare-col">
+          <h3>키 없이 (기본)</h3>
+          <ul>
+            <li>규칙 기반 파서가 지역·예산·분양단계·세대수를 인식합니다.</li>
+            <li>“충남 예산 2억 분양 중”처럼 조건이 또렷한 문장에 강합니다.</li>
+            <li>모든 검색이 무료이고 외부 호출이 없습니다.</li>
+          </ul>
+        </div>
+        <div class="settings-compare-col">
+          <h3>키를 넣으면</h3>
+          <ul>
+            <li>돌려 말한 문장도 조건으로 바꿉니다 — “아직 안 팔린 데”, “사람 적은 동네”.</li>
+            <li>질의 길이에 따라 3개 모델로 나눠 보냅니다(짧으면 저렴한 모델).</li>
+            <li>호출이 실패하면 규칙 파서로 되돌아가고, 그 사실을 결과에 표시합니다.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="settings-footnote">두 경우 모두 후보를 고르고 점수를 매기는 것은 결정론적 코드입니다. LLM은 문장을 조건으로 바꾸는 자리에만 있습니다. — <a href="/how-it-works.html">작동 방식</a></p>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="cta-inner">
+      <h2>설정을 마쳤다면 검색해 보세요.</h2>
+      <p class="lede" style="margin:16px auto 0;">키가 없어도 전체 흐름은 그대로 동작합니다.</p>
+      <div class="cta-actions">
+        <a class="btn-primary" href="/index.html#search">마을 찾기
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+        </a>
+        <a class="btn-ghost" href="/how-it-works.html">작동 방식 보기</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-5.5 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg></span><strong>전원마을 파인더</strong></div>
+        <p class="footer-lead">지금 분양 가능한 전원마을을 공공데이터 근거와 함께 찾아주는 검색 서비스입니다. 공공데이터 기반 참고정보이며 최종 계약·분양은 공식 기관 확인이 필요합니다.</p>
+      </div>
+      <div class="footer-col"><strong>페이지</strong><div class="footer-links"><a href="/index.html">홈 · 마을 찾기</a><a href="/how-it-works.html">작동 방식</a><a href="/data-evidence.html">데이터 근거</a><a href="/settings.html">설정</a></div></div>
+      <div class="footer-col"><strong>데이터 출처 · data.go.kr</strong><div class="footer-sources"><span>전원마을 분양정보 <code>15104395</code></span><span>농촌마을현황 <code>15104291</code></span><span>논가뭄지도 <code>15117185</code></span></div></div>
+    </div>
+    <div class="footer-bar"><div class="footer-bar-inner"><span>제3회 KRC 인공지능 디지털 혁신 공모전 · 서비스개발 부문</span><span class="mode-flag">sample-mode로 동작 중</span></div></div>
+  </footer>
+
+  <script src="/key-store.js"></script>
+  <script src="/pages.js"></script>
+  <script src="/settings.js"></script>
+</body>
+</html>

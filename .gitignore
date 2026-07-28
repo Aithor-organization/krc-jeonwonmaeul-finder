@@ -9,3 +9,7 @@ __pycache__/
 .coverage
 coverage.json
 htmlcov/
+
+# 로컬 개발용 LLM 키 파일 (config.OPENAI_KEY_FILE 기본 경로) — 절대 커밋 금지
+llm-key.local.md
+llm-key.local.*

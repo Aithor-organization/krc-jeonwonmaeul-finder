@@ -21,36 +21,26 @@ const el = {
   modal: $("#modal"),
   modalBody: $("#modal-body"),
   modalClose: $("#modal-close"),
-  keyInput: $("#openai-key"),
-  keyClear: $("#byok-clear"),
-  byokState: $("#byok-state"),
+  aiStatus: $("#ai-status"),
+  aiStatusText: $("#ai-status-text"),
 };
 
-// BYOK: 키는 sessionStorage에만 둔다 — 탭을 닫으면 사라지고 다른 탭과 공유되지 않는다.
-// localStorage를 쓰면 로그아웃 개념이 없는 정적 페이지에서 키가 무기한 남는다.
-const KEY_STORE = "krc.openai_key";
-
+// 키 입력·보관은 설정 화면(/settings.html)이 담당하고, 여기서는 읽어 쓰기만 한다.
+// 저장 규칙은 key-store.js 단일 출처 — 두 화면이 각자 들고 있으면 조용히 어긋난다.
 function readStoredKey() {
-  try {
-    return window.sessionStorage.getItem(KEY_STORE) || "";
-  } catch (_error) {
-    return "";   // 프라이빗 모드 등 storage 차단 환경
-  }
+  return window.KrcKeyStore ? window.KrcKeyStore.read() : "";
 }
 
-function storeKey(value) {
-  try {
-    if (value) window.sessionStorage.setItem(KEY_STORE, value);
-    else window.sessionStorage.removeItem(KEY_STORE);
-  } catch (_error) {
-    /* storage 불가여도 이번 세션 입력값은 그대로 쓴다 */
-  }
-}
-
-function syncByokState() {
-  if (!el.byokState) return;
-  const has = Boolean(el.keyInput && el.keyInput.value.trim());
-  el.byokState.textContent = has ? "(적용 중 · 이 탭에만 보관)" : "(선택 · 규칙 파서로도 동작)";
+/* 검색창 아래 한 줄로 현재 파싱 경로를 알린다 — 어느 쪽으로 검색되는지 감추지 않는다. */
+function syncAiStatus() {
+  if (!el.aiStatus || !el.aiStatusText) return;
+  const has = Boolean(readStoredKey());
+  el.aiStatus.dataset.state = has ? "set" : "empty";
+  el.aiStatusText.textContent = has
+    ? "AI 파싱 켜짐 — 이 탭에 저장된 키를 사용합니다"
+    : "AI 파싱 꺼짐 — 규칙 파서로 검색합니다";
+  const link = el.aiStatus.querySelector("a");
+  if (link) link.textContent = has ? "설정" : "설정에서 키 넣기";
 }
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -321,7 +311,7 @@ async function runSearch() {
   scrollToElement(el.results);
 
   try {
-    const apiKey = el.keyInput ? el.keyInput.value.trim() : "";
+    const apiKey = readStoredKey();
     const payload = { query };
     if (apiKey) payload.openai_api_key = apiKey;   // 없으면 필드 자체를 보내지 않는다
 
@@ -414,24 +404,14 @@ el.cards.addEventListener("click", (event) => {
   }
 });
 
-// --- BYOK 키 입력 배선 ---
-if (el.keyInput) {
-  el.keyInput.value = readStoredKey();
-  syncByokState();
-  el.keyInput.addEventListener("input", () => {
-    storeKey(el.keyInput.value.trim());
-    syncByokState();
-  });
-}
-
-if (el.keyClear) {
-  el.keyClear.addEventListener("click", () => {
-    if (el.keyInput) el.keyInput.value = "";
-    storeKey("");
-    syncByokState();
-    if (el.keyInput) el.keyInput.focus();
-  });
-}
+// --- AI 파싱 상태 표시 ---
+syncAiStatus();
+// 설정 화면에서 키를 바꾸고 뒤로 돌아왔을 때 표시가 낡지 않도록 갱신한다.
+// (bfcache 복원은 pageshow로만 잡히고 visibilitychange는 탭 전환도 잡는다)
+window.addEventListener("pageshow", syncAiStatus);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) syncAiStatus();
+});
 
 el.modalClose.addEventListener("click", () => el.modal.close());
 el.modal.addEventListener("click", (event) => {

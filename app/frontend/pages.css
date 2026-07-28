@@ -363,3 +363,218 @@
   .page-section h2, .pipeline-aside h2 { font-size: 30px; }
   .header-nav a:not(.nav-cta) { display: none; }
 }
+
+/* ── 설정 페이지 (/settings.html) ───────────────────────────────── */
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 56px;
+  align-items: start;
+}
+
+.settings-aside h2 { font-size: 40px; margin: 10px 0 0; }
+.settings-aside .lede { margin: 20px 0 0; max-width: 420px; }
+
+.settings-hint {
+  margin: 18px 0 0;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--muted);
+}
+
+.settings-hint a { color: var(--forest-700); font-weight: 700; }
+
+.settings-card {
+  display: grid;
+  gap: 10px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+
+.settings-state {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 6px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.settings-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.settings-state[data-state="set"] { color: var(--forest-700); border-color: var(--forest-100); }
+.settings-state[data-state="set"] .settings-dot { background: var(--forest-700); }
+
+.settings-card label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-950);
+}
+
+.settings-card input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--ink-950);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.settings-card input:focus-visible {
+  outline: 2px solid var(--forest-700);
+  outline-offset: 1px;
+}
+
+.settings-error {
+  margin: 0;
+  color: var(--error);
+  font-size: 13px;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.settings-actions .btn-primary,
+.settings-actions .btn-ghost {
+  padding: 11px 20px;
+  font-size: 14px;
+}
+
+.settings-actions .btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.settings-clear {
+  margin-left: auto;
+  padding: 11px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.settings-clear:hover { color: var(--error); }
+
+.settings-result {
+  margin: 4px 0 0;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.6;
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.settings-result[data-kind="ok"] {
+  border-color: var(--forest-100);
+  background: var(--forest-100);
+  color: #135a34;
+}
+
+.settings-result[data-kind="fail"] {
+  border-color: #efc5b3;
+  background: #fff6f1;
+  color: #71361f;
+}
+
+.settings-help {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--muted);
+}
+
+.settings-help code {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.settings-compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+  margin-top: 32px;
+}
+
+.settings-compare-col {
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--white);
+}
+
+.settings-compare-col h3 {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: 21px;
+}
+
+.settings-compare-col ul {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.settings-compare-col li {
+  position: relative;
+  padding-left: 15px;
+}
+
+.settings-compare-col li::before {
+  position: absolute;
+  top: 0.72em;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--signal-500);
+  content: "";
+}
+
+.settings-footnote {
+  margin: 26px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.settings-footnote a { color: var(--forest-700); font-weight: 700; }
+
+@media (max-width: 900px) {
+  .settings-layout { grid-template-columns: 1fr; gap: 32px; }
+  .settings-aside h2 { font-size: 32px; }
+  .settings-card { padding: 22px; }
+  .settings-clear { margin-left: 0; }
+}

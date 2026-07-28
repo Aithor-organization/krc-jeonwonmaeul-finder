@@ -39,7 +39,13 @@ DISCLAIMER = "공공데이터 기반 참고정보이며 최종 계약·분양은
 
 # --- LLM 자연어 파서 모델 라우팅 (선택, 기술명세 §4.2 Option A) ---
 # 키는 코드/커밋에 두지 않고 파일에서 런타임 로드. USE_LLM=1일 때만 활성(기본 결정론 파서).
-OPENAI_KEY_FILE = os.environ.get("OPENAI_KEY_FILE", "/home/cafe99/workspace/키저장.md")
+# 로컬 개발 편의용 키 파일. 배포에는 쓰이지 않는다 —
+# 방문자가 화면에서 자기 키를 넣는 방식(BYOK)이고, 저장소는 public이라
+# 키가 담긴 파일은 커밋할 수 없다. 기본 경로는 .gitignore로 제외되어 있다.
+# (기존 기본값 "/home/cafe99/workspace/키저장.md"는 특정 머신 절대경로라
+#  이 저장소를 받은 누구에게도 동작하지 않았다.)
+OPENAI_KEY_FILE = os.environ.get(
+    "OPENAI_KEY_FILE", str(BASE_DIR.parent.parent / "llm-key.local.md"))
 OPENAI_KEY_ENV = os.environ.get("OPENAI_API_KEY") or None
 LLM_ENABLED: bool = os.environ.get("USE_LLM", "").lower() in ("1", "true", "yes")
 LLM_MODEL_SIMPLE = os.environ.get("LLM_MODEL_SIMPLE", "gpt-5.4-nano")
