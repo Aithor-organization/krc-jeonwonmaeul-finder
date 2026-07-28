@@ -300,18 +300,21 @@ curl -X POST http://127.0.0.1:8000/api/search \
 
 ## 배포 (Vercel)
 
+FastAPI는 Vercel의 [zero-config 백엔드](https://vercel.com/docs/frameworks/backend)라 `vercel.json`이 없습니다. 대시보드에서 건드릴 것은 두 개뿐입니다.
+
 | 설정 | 값 |
 |---|---|
-| Framework Preset | Other |
-| **Root Directory** | **저장소 루트** (`app`이나 `app/backend`로 바꾸지 말 것) |
-| Build Command | 비움 |
+| **Root Directory** | **저장소 루트** (`app`·`app/backend`로 바꾸지 말 것) |
 | 환경변수 | `KRC_SERVICE_KEY` 만. `OPENAI_API_KEY`는 넣지 않음(BYOK) |
+| Build Command / Framework Preset | 자동 감지에 맡김 |
 
 진입점은 루트의 [`server.py`](server.py)입니다. Vercel Python 런타임은 진입점을 프로젝트 루트나 `src/`·`app/`·`api/` **바로 안**에서만 찾는데([문서](https://vercel.com/docs/functions/runtimes/python)), 실제 앱은 `app/backend/main.py`로 한 단계 더 깊습니다. `server.py`가 `app/backend`를 `sys.path`에 넣고 `app`을 재노출해 그 간극을 메웁니다.
 
-**Root Directory를 `app/backend`로 잡으면 안 되는 이유**: 진입점은 찾지만 `app/frontend`가 루트 밖으로 나가 번들에서 빠집니다. `config.FRONTEND_DIR`가 존재하지 않게 되어 정적 마운트가 통째로 건너뛰어지고, `/api/*`만 살아남은 채 `/`는 404가 됩니다.
+### 배포에서 밟은 함정 2건
 
-`requirements.txt`도 같은 이유로 루트에 필요합니다. 목록을 복사하지 않고 `-r app/backend/requirements.txt`로 참조만 합니다 — 두 곳에 적으면 반드시 어긋납니다.
+**1. Root Directory를 `app/backend`로 잡으면 안 된다.** 진입점은 찾지만 `app/frontend`가 루트 밖으로 나가 번들에서 빠집니다. `config.FRONTEND_DIR`가 존재하지 않게 되어 정적 마운트가 통째로 건너뛰어지고, `/api/*`만 살아남은 채 `/`는 404가 됩니다.
+
+**2. 루트 `requirements.txt`에 패키지 이름이 그대로 있어야 한다.** Vercel은 이 파일에서 의존성 이름을 찾아 프레임워크를 감지합니다. 중복을 피하려고 `-r app/backend/requirements.txt` 참조만 두면 `fastapi` 문자열이 없어 **Python 런타임이 아예 안 붙고**, 배포가 정적 파일 서빙으로 떨어집니다(`server.py`가 텍스트로 내려오고 모든 경로가 404). 그래서 **루트가 런타임 의존성 정본**이고 `app/backend/requirements.txt`가 `-r ../../requirements.txt`로 참조하며 `pytest`만 더합니다.
 
 ---
 

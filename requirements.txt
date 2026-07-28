@@ -1,3 +1,13 @@
-# Vercel은 프로젝트 루트에서 의존성 파일을 찾는다.
-# 실제 목록은 백엔드 것을 그대로 참조 — 두 곳에 적으면 반드시 어긋난다.
--r app/backend/requirements.txt
+# 런타임 의존성 정본. 배포에 실제로 설치되는 목록이다.
+#
+# 🔴 여기에 패키지 이름을 그대로 적어야 한다 — Vercel은 이 파일에서 의존성
+# 이름을 찾아 프레임워크를 감지한다. `-r app/backend/requirements.txt`처럼
+# 참조만 두면 "fastapi" 문자열이 없어 Python 런타임이 아예 안 붙고,
+# 배포가 정적 파일 서빙으로 떨어진다 (2026-07-28 실제로 겪음).
+# https://vercel.com/docs/functions/runtimes/python
+#
+# 개발 전용 패키지(pytest 등)는 app/backend/requirements.txt에 둔다.
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.29
+pydantic>=2.6,<3.0
+httpx>=0.27
