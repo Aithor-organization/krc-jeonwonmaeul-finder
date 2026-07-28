@@ -300,17 +300,19 @@ curl -X POST http://127.0.0.1:8000/api/search \
 
 ## 배포 (Vercel)
 
-FastAPI는 Vercel의 [zero-config 백엔드](https://vercel.com/docs/frameworks/backend)라 `vercel.json`이 없습니다. 대시보드에서 건드릴 것은 두 개뿐입니다.
+[`vercel.json`](vercel.json)이 Framework Preset을 `fastapi`로 고정합니다. 대시보드에서 건드릴 것은 두 개뿐입니다.
 
 | 설정 | 값 |
 |---|---|
 | **Root Directory** | **저장소 루트** (`app`·`app/backend`로 바꾸지 말 것) |
 | 환경변수 | `KRC_SERVICE_KEY` 만. `OPENAI_API_KEY`는 넣지 않음(BYOK) |
-| Build Command / Framework Preset | 자동 감지에 맡김 |
+| Framework Preset | `vercel.json`이 덮어씀 — 대시보드 값 무관 |
 
 진입점은 루트의 [`server.py`](server.py)입니다. Vercel Python 런타임은 진입점을 프로젝트 루트나 `src/`·`app/`·`api/` **바로 안**에서만 찾는데([문서](https://vercel.com/docs/functions/runtimes/python)), 실제 앱은 `app/backend/main.py`로 한 단계 더 깊습니다. `server.py`가 `app/backend`를 `sys.path`에 넣고 `app`을 재노출해 그 간극을 메웁니다.
 
-### 배포에서 밟은 함정 2건
+### 배포에서 밟은 함정 3건
+
+**0. FastAPI 프리셋은 자동 감지되지 않는다.** Vercel 프레임워크 정의(`api.vercel.com/v1/frameworks`)에서 `fastapi`는 `detectors: null`입니다 — 파일을 보고 알아서 붙는 프리셋이 아니라 **명시적으로 골라야만** `@vercel/python` 런타임이 붙습니다. 대시보드에서 "Other"를 고르면 Python이 아예 실행되지 않고 저장소가 통째로 정적 파일로 서빙됩니다(`server.py`가 텍스트로 내려옴). `vercel.json`의 `"framework": "fastapi"`가 이걸 코드로 고정합니다.
 
 **1. Root Directory를 `app/backend`로 잡으면 안 된다.** 진입점은 찾지만 `app/frontend`가 루트 밖으로 나가 번들에서 빠집니다. `config.FRONTEND_DIR`가 존재하지 않게 되어 정적 마운트가 통째로 건너뛰어지고, `/api/*`만 살아남은 채 `/`는 404가 됩니다.
 
