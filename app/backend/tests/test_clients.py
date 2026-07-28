@@ -3,6 +3,7 @@ from clients import KrcDataClient
 
 def test_sample_mode_notes():
     c = KrcDataClient(sample_mode=True)
+    c.ensure_loaded()          # 상태는 지연 확정 (콜드스타트에 상류 지연을 얹지 않으려고)
     assert c.sample_mode
     assert any("sample-mode" in n for n in c.notes)
 

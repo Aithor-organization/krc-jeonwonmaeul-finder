@@ -44,7 +44,10 @@ def test_fetch_sales_success(monkeypatch):
     assert [r["zoneName"] for r in rows] == ["A", "B"]
     assert captured["params"]["serviceKey"] == "KEY123"
     assert captured["params"]["dataType"] == "json"
-    assert captured["timeout"] == config.HTTP_TIMEOUT_S   # FP#1 타임아웃 필수
+    # FP#1 타임아웃 필수. 단 일반 5초가 아니라 이 상류 전용 상한을 쓴다 —
+    # KRC는 같은 요청이 0.3~10.4초로 흔들려 5초로는 대부분 죽는다 (2026-07-28 실측).
+    assert captured["timeout"] == config.KRC_FETCH_TIMEOUT_S
+    assert config.KRC_FETCH_TIMEOUT_S > config.HTTP_TIMEOUT_S
     assert captured["url"].startswith("https://apis.data.go.kr/")
 
 

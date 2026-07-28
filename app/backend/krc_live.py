@@ -38,7 +38,8 @@ def fetch_sales(service_key: str, rows: int = MAX_ROWS) -> list[dict]:
         "dataType": "json",
     }
     try:
-        r = httpx.get(SALE_URL, params=params, timeout=config.HTTP_TIMEOUT_S)
+        # 일반 5초가 아니라 전용 상한 — 이 상류는 응답이 0.3~10.4초로 흔들린다.
+        r = httpx.get(SALE_URL, params=params, timeout=config.KRC_FETCH_TIMEOUT_S)
         r.raise_for_status()
         payload = r.json()
     except httpx.HTTPError as e:

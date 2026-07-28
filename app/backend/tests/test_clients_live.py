@@ -14,11 +14,23 @@ RAW = [
 ]
 
 
+def test_construction_does_not_call_upstream(monkeypatch):
+    """생성만으로 상류를 때리면 안 된다 — 콜드스타트에 지연이 얹히고 HTML까지 늦어진다."""
+    def boom(key, **kw):
+        raise AssertionError("__init__에서 fetch_sales를 호출하면 안 됨")
+    monkeypatch.setattr(config, "KRC_SERVICE_KEY", "KEY")
+    monkeypatch.setattr(krc_live, "fetch_sales", boom)
+
+    c = KrcDataClient(sample_mode=False)      # 예외가 나지 않아야 통과
+    assert c.live_active is False             # 아직 아무 상태도 확정되지 않음
+
+
 def test_live_mode_maps_and_filters(monkeypatch):
     monkeypatch.setattr(config, "KRC_SERVICE_KEY", "KEY")
     monkeypatch.setattr(krc_live, "fetch_sales", lambda key, **kw: RAW)
 
     c = KrcDataClient(sample_mode=False)
+    c.ensure_loaded()
     assert c.live_active is True
     assert c.sample_mode is False
 
@@ -37,6 +49,7 @@ def test_live_mode_emits_honest_notes(monkeypatch):
     monkeypatch.setattr(config, "KRC_SERVICE_KEY", "KEY")
     monkeypatch.setattr(krc_live, "fetch_sales", lambda key, **kw: RAW)
     c = KrcDataClient(sample_mode=False)
+    c.ensure_loaded()
     assert STAGE_NOTE in c.notes         # 단계 변환 사실 고지
     assert VILLAGE_NOTE in c.notes       # 마을 상세 미포함 고지
     assert c.warnings == []              # 정상 동작에는 경고가 없어야 한다
@@ -59,6 +72,7 @@ def test_live_failure_falls_back_to_sample(monkeypatch):
     monkeypatch.setattr(krc_live, "fetch_sales", boom)
 
     c = KrcDataClient(sample_mode=False)
+    c.ensure_loaded()
     assert c.live_active is False
     assert c.sample_mode is True                 # 샘플로 내려앉음
     assert c.get_sales(), "fallback 후에도 샘플 데이터는 있어야 함"
@@ -67,12 +81,65 @@ def test_live_failure_falls_back_to_sample(monkeypatch):
     assert c.get_village("44710310") is not None
 
 
+def test_failure_is_retried_after_cooldown(monkeypatch):
+    """한 번 실패했다고 인스턴스 수명 내내 샘플에 갇히면 안 된다."""
+    monkeypatch.setattr(config, "KRC_SERVICE_KEY", "KEY")
+    monkeypatch.setattr(config, "KRC_RETRY_AFTER_S", 0.0)   # 쿨다운 없이 즉시 재시도
+    calls = {"n": 0}
+
+    def flaky(key, **kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise krc_live.KrcApiError("HTTP 오류: ReadTimeout")
+        return RAW
+    monkeypatch.setattr(krc_live, "fetch_sales", flaky)
+
+    c = KrcDataClient(sample_mode=False)
+    c.ensure_loaded()
+    assert c.sample_mode is True and c.warnings            # 1회차 실패 → 샘플 + 경고
+
+    c.ensure_loaded()                                      # 2회차 → 복구
+    assert c.live_active is True
+    assert c.sample_mode is False
+    assert c.warnings == [], "복구 후에는 이전 실패 경고가 남으면 안 된다"
+    assert STAGE_NOTE in c.notes
+
+
+def test_cooldown_blocks_immediate_retry(monkeypatch):
+    """실패 직후 매 검색마다 느린 상류를 다시 때리지 않는다."""
+    monkeypatch.setattr(config, "KRC_SERVICE_KEY", "KEY")
+    monkeypatch.setattr(config, "KRC_RETRY_AFTER_S", 300.0)
+    calls = {"n": 0}
+
+    def always_fail(key, **kw):
+        calls["n"] += 1
+        raise krc_live.KrcApiError("HTTP 오류: ReadTimeout")
+    monkeypatch.setattr(krc_live, "fetch_sales", always_fail)
+
+    c = KrcDataClient(sample_mode=False)
+    for _ in range(5):
+        c.ensure_loaded()
+    assert calls["n"] == 1, f"쿨다운 중에도 {calls['n']}회 호출됨"
+
+
 def test_sample_mode_unchanged():
     c = KrcDataClient(sample_mode=True)
+    c.ensure_loaded()
     assert c.live_active is False
     assert any("sample-mode" in n for n in c.notes)   # 안내이지 경고가 아니다
     assert c.warnings == []
     assert c.get_village("44710310") is not None
+
+
+def test_no_key_never_calls_upstream(monkeypatch):
+    """키가 없으면 재시도해도 의미가 없다 — 상류를 아예 부르지 않는다."""
+    def boom(key, **kw):
+        raise AssertionError("sample-mode에서 fetch_sales를 호출하면 안 됨")
+    monkeypatch.setattr(krc_live, "fetch_sales", boom)
+    c = KrcDataClient(sample_mode=True)
+    for _ in range(3):
+        c.ensure_loaded()
+    assert c.get_sales()
 
 
 def test_config_gate_follows_key_presence():

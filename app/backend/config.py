@@ -26,6 +26,15 @@ API_RESERVOIR = "15099919"  # 저수지 수위정보 (선택)
 
 HTTP_TIMEOUT_S = 5.0
 
+# KRC 포털 전량 조회 전용 상한. 같은 요청이 0.27 / 10.06 / 10.41 / 8.27초로
+# 크게 흔들린다(2026-07-28 연속 4회 실측). 일반 5초를 그대로 쓰면 대부분이
+# 타임아웃으로 죽어 매 검색이 샘플로 내려앉는다 — 배포 직후 실제로 그랬다.
+KRC_FETCH_TIMEOUT_S = float(os.environ.get("KRC_FETCH_TIMEOUT_S", "15"))
+
+# live 호출 실패 후 다음 재시도까지의 최소 간격.
+# 0이면 매 검색이 느린 상류를 다시 때리고, 너무 길면 복구가 늦다.
+KRC_RETRY_AFTER_S = float(os.environ.get("KRC_RETRY_AFTER_S", "60"))
+
 DISCLAIMER = "공공데이터 기반 참고정보이며 최종 계약·분양은 공식 기관 확인이 필요합니다."
 
 # --- LLM 자연어 파서 모델 라우팅 (선택, 기술명세 §4.2 Option A) ---

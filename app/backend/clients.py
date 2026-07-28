@@ -11,6 +11,7 @@ live-mode에서 get_village는 None을 반환하고 그 사실을 경고로 고�
 from __future__ import annotations
 
 import json
+import time
 
 import config
 import krc_live
@@ -22,33 +23,62 @@ def _load(name: str) -> list[dict]:
         return json.load(f)
 
 
+SAMPLE_NOTE = "sample-mode: 공공데이터 서비스키가 없어 샘플 데이터로 동작합니다."
+
+
 class KrcDataClient:
     def __init__(self, sample_mode: bool | None = None) -> None:
-        self.sample_mode = config.SAMPLE_MODE if sample_mode is None else sample_mode
+        forced_sample = config.SAMPLE_MODE if sample_mode is None else sample_mode
+        self._live_possible = not forced_sample
+
+        self.sample_mode = True         # 실제 로드 전까지는 샘플로 간주 (낙관 금지)
+        self.live_active = False
         self.warnings: list[str] = []   # 조치가 필요한 문제
         self.notes: list[str] = []      # 데이터 성격 안내 (문제 아님)
-        self.live_active = False
 
         self._village = {v["법정동코드"]: v for v in _load("rural_village.json")}
         self._drought = {d["시군구"]: d for d in _load("drought.json")}
+        self._sale: list[dict] | None = None
+        self._retry_at = 0.0
 
-        if self.sample_mode:
-            self._sale = _load("jeonwon_sale.json")
-            self.notes.append(
-                "sample-mode: 공공데이터 서비스키가 없어 샘플 데이터로 동작합니다."
-            )
+    # --- 데이터 확보 (지연 로드 + 실패 재시도) ---
+    def ensure_loaded(self) -> None:
+        """분양 데이터를 확보한다. live 실패 시 샘플로 내려앉되 주기적으로 재시도.
+
+        모듈 임포트가 아니라 첫 사용 시점에 부르는 이유: 서버리스 콜드스타트에
+        상류 지연(최대 15초)이 그대로 얹히면 화면 HTML조차 그만큼 늦게 뜬다.
+        이 앱은 프론트도 같은 함수가 서빙하므로 검색과 무관한 요청까지 느려진다.
+
+        재시도가 필요한 이유: 한 번 실패한 채로 굳으면 그 인스턴스는 수명 내내
+        샘플만 내놓는다. KRC 상류는 같은 요청도 성패가 갈리므로 회복 경로가 있어야 한다.
+        """
+        if not self._live_possible:                 # 키 없음 — 재시도해도 소용없다
+            if self._sale is None:
+                self._fall_back(SAMPLE_NOTE, is_note=True)
             return
+        if self.live_active:                        # 이미 확보됨
+            return
+        if self._sale is not None and time.monotonic() < self._retry_at:
+            return                                  # 직전 실패 — 쿨다운 중엔 샘플 유지
 
-        # live-mode: 실호출 → 매핑. 실패하면 샘플로 내려앉되 반드시 고지한다.
         try:
             self._sale = map_sales(krc_live.fetch_sales(config.KRC_SERVICE_KEY or ""))
+            self.sample_mode = False
             self.live_active = True
-            self.notes.append(STAGE_NOTE)
-            self.notes.append(VILLAGE_NOTE)
+            self.warnings = []
+            self.notes = [STAGE_NOTE, VILLAGE_NOTE]
         except krc_live.KrcApiError as e:
-            self._sale = _load("jeonwon_sale.json")
-            self.sample_mode = True
-            self.warnings.append(f"KRC API 호출 실패로 샘플 데이터로 대체했습니다: {e}")
+            self._retry_at = time.monotonic() + config.KRC_RETRY_AFTER_S
+            self._fall_back(
+                f"KRC API 호출 실패로 샘플 데이터로 대체했습니다: {e}", is_note=False)
+
+    def _fall_back(self, message: str, is_note: bool) -> None:
+        """샘플로 내려앉는다. 상태 메시지는 누적이 아니라 교체 — 인스턴스가 재사용되므로."""
+        self._sale = _load("jeonwon_sale.json")
+        self.sample_mode = True
+        self.live_active = False
+        self.notes = [message] if is_note else []
+        self.warnings = [] if is_note else [message]
 
     # --- 전원마을 분양정보 (핵심) ---
     def get_sales(
@@ -57,7 +87,8 @@ class KrcDataClient:
         sigungu: str | None = None,
         stages: list[str] | None = None,
     ) -> list[dict]:
-        rows = list(self._sale)
+        self.ensure_loaded()
+        rows = list(self._sale or [])
         if sido:
             rows = [r for r in rows if r.get("시도명") == sido]
         if sigungu:
@@ -68,11 +99,13 @@ class KrcDataClient:
 
     def available_sigungu(self) -> list[str]:
         """현재 데이터에 실제로 존재하는 시군구 목록 (질의 매칭용)."""
-        return sorted({str(r.get("시군구")) for r in self._sale if r.get("시군구")})
+        self.ensure_loaded()
+        return sorted({str(r.get("시군구")) for r in (self._sale or []) if r.get("시군구")})
 
     # --- 농촌마을현황 (보조) ---
     def get_village(self, bjd_code: str | None) -> dict | None:
         # live-mode에서는 조인하지 않는다 (VILLAGE_NOTE로 고지됨)
+        self.ensure_loaded()
         if self.live_active or not bjd_code:
             return None
         return self._village.get(bjd_code)

@@ -41,6 +41,9 @@ class Orchestrator:
 
     def search(self, query: str | None = None, structured=None, top_n: int = 3,
                api_key: str | None = None) -> SearchResponse:
+        # 데이터 상태를 먼저 확정해야 아래 warnings/notes가 이번 요청의 실제 상태를 담는다
+        # (클라이언트는 지연 로드 + 실패 재시도라 요청마다 상태가 바뀔 수 있다).
+        self.client.ensure_loaded()
         warnings = list(self.client.warnings)
         notes = list(self.client.notes)
 
