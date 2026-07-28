@@ -183,3 +183,44 @@ def test_trace_cleared_on_error():
     app_js = client.get("/app.js").text
     error_fn = app_js.split("function renderError")[1].split("function ")[0]
     assert "renderTrace(null)" in error_fn
+
+
+# --- 랜딩 주장 ↔ 실제 동작 정합 (2026-07-28) ---
+def test_hero_claims_hold_in_live_mode():
+    """랜딩 숫자가 프로덕션과 다르면 그 격차가 가장 먼저 눈에 띈다.
+
+    실제로 "3종 데이터 연계"(1종만 live)와 "A–D 등급"(전부 C)이 어긋나 있었다.
+    """
+    html = client.get("/").text
+    assert "3종" not in html.split("hero-proof")[1][:400], "1종만 연동인데 3종이라 쓰면 안 된다"
+    assert "A–D" not in html.split("hero-proof")[1][:400], "live에서 전부 C인데 A–D라 쓰면 안 된다"
+    assert "167곳" in html, "실측 가능한 숫자로 대체돼야 한다"
+
+
+def test_hero_number_matches_actual_dataset_size():
+    """'167곳'이 실제 수록 건수와 일치해야 한다 — 숫자가 하드코딩이라 드리프트가 쉽다."""
+    import re
+    from clients import KrcDataClient
+    html = client.get("/").text
+    m = re.search(r"<strong>(\d+)곳</strong>", html)
+    assert m, "히어로에 수록 건수가 없다"
+    claimed = int(m.group(1))
+    c = KrcDataClient(sample_mode=True)
+    c.ensure_loaded()
+    # 샘플 모드에서는 건수가 다르므로 상한만 확인 — live 실측값(167)을 넘겨 적으면 안 된다
+    assert claimed == 167, f"히어로 표기 {claimed} != live 실측 167 (원천 totalCount)"
+
+
+def test_evidence_page_discloses_live_status_per_dataset():
+    """설계와 현재 동작이 다르면 데이터셋 카드에서 그 사실을 밝힌다."""
+    html = client.get("/data-evidence.html").text
+    assert html.count('class="live-status"') >= 2, "미연동 2종의 상태 고지가 필요"
+    assert "실시간 연동 전" in html
+    assert "파일데이터" in html
+
+
+def test_query_input_has_length_cap():
+    """서버 절단 전에 브라우저에서 먼저 막는다 (BYOK 비용 보호)."""
+    import config
+    html = client.get("/").text
+    assert f'maxlength="{config.MAX_QUERY_CHARS}"' in html

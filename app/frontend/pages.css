@@ -577,3 +577,15 @@
   .settings-card { padding: 22px; }
   .settings-clear { margin-left: 0; }
 }
+
+/* 데이터셋 live 연동 상태 — 설계와 현재 동작이 다르면 그 사실을 카드 안에서 밝힌다 */
+.live-status {
+  margin: 12px 0 0;
+  padding: 11px 13px;
+  border-left: 3px solid var(--signal-500);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: #fff6f1;
+  color: #71361f;
+  font-size: 13px;
+  line-height: 1.7;
+}

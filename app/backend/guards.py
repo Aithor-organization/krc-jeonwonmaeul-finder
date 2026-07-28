@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 from urllib.parse import urlparse
 
+import config
 from config import ALLOWLIST_HOSTS
 
 _RRN = re.compile(r"\d{6}[-. ]?\d{7}")                        # 주민등록번호
@@ -25,6 +26,15 @@ def inspect_input(text: str | None) -> tuple[str, bool, list[str]]:
         return "", False, []
     reasons: list[str] = []
     cleaned = text
+
+    # 길이 상한 — 차단이 아니라 절단. 검색어로서 200자를 넘길 일이 없고,
+    # 사용자 키(BYOK)로 LLM에 보내지므로 긴 입력은 그대로 그 사람 요금이 된다.
+    # 게다가 길이가 모델 티어를 올려(complex → 가장 비싼 모델) 비용이 곱해진다.
+    if len(cleaned) > config.MAX_QUERY_CHARS:
+        cleaned = cleaned[:config.MAX_QUERY_CHARS]
+        reasons.append(
+            f"검색어가 길어 앞 {config.MAX_QUERY_CHARS}자만 사용했습니다"
+            " — 지역·예산·분양 조건을 한 문장으로 적어 주세요.")
 
     # 개행/다중공백을 정규화한 뒤 injection 검사 (개행 우회 방지)
     norm = re.sub(r"\s+", " ", text)

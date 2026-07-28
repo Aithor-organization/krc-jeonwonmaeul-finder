@@ -15,6 +15,11 @@ LIVE_KEY_PRESENT: bool = KRC_SERVICE_KEY is not None
 # (2026-07-27 live 경로 구현 완료 — 기술명세 §14 "오퍼레이션명 미확정" 해소)
 SAMPLE_MODE: bool = not LIVE_KEY_PRESENT
 
+# 검색어 길이 상한. 초과분은 차단이 아니라 절단하고 그 사실을 알린다.
+# 지역·예산·분양 조건을 담는 한 문장이 200자를 넘을 일이 없고, BYOK로
+# 사용자 키에 청구되므로 긴 입력을 그대로 LLM에 넘기면 그 사람 요금이 된다.
+MAX_QUERY_CHARS = int(os.environ.get("MAX_QUERY_CHARS", "200"))
+
 # SSRF 방어 — 외부 호출 허용 호스트 (기술명세 §6.2)
 ALLOWLIST_HOSTS: frozenset[str] = frozenset({"apis.data.go.kr", "api.data.go.kr"})
 

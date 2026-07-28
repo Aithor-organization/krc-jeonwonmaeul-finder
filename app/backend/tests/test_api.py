@@ -67,3 +67,10 @@ def test_injection_returns_empty_safely():
     data = r.json()
     assert data["top"] == []
     assert data["warnings"]
+
+
+def test_api_truncates_long_query():
+    """API 경로에서도 상한이 걸린다 (프론트 maxlength 우회 대비)."""
+    r = client.post("/api/search", json={"query": "충남 분양 중 " * 500})
+    assert r.status_code == 200
+    assert any("길어" in w for w in r.json()["warnings"])

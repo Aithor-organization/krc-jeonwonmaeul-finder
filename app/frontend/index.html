@@ -67,7 +67,8 @@
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.3-4.3" />
               </svg>
-              <input id="query" name="query" type="search" autocomplete="off" enterkeyhint="search" placeholder="예: 충남, 예산 2억, 분양 중인 조용한 마을" aria-describedby="query-help" required />
+              <!-- maxlength는 백엔드 MAX_QUERY_CHARS(200)와 같은 값 — 서버가 절단하기 전에 막는다 -->
+              <input id="query" name="query" type="search" autocomplete="off" enterkeyhint="search" maxlength="200" placeholder="예: 충남, 예산 2억, 분양 중인 조용한 마을" aria-describedby="query-help" required />
               <button id="search-btn" type="submit">
                 <span>마을 찾기</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -92,9 +93,13 @@
             <button class="query-chip" type="button" data-query="강원, 분양 중, 스마트팜 인근 교통 좋은 곳">강원 · 스마트팜 인근</button>
           </div>
 
+          <!-- 이 숫자들은 프로덕션에서 실제로 성립하는 것만 적는다.
+               "3종 데이터 연계"는 현재 1종만 실시간 연동돼 있어 뺐고,
+               "A–D 등급"도 마을 상세 미조인으로 전부 C라 뺐다.
+               랜딩 숫자가 화면과 다르면 그 격차가 가장 먼저 눈에 띈다. -->
           <ul class="hero-proof" aria-label="서비스 핵심 원칙">
-            <li><strong>3종</strong><span>KRC 데이터 연계</span></li>
-            <li><strong>A–D</strong><span>근거 신뢰도 공개</span></li>
+            <li><strong>167곳</strong><span>전국 전원마을 실시간</span></li>
+            <li><strong>전 수치</strong><span>출처 API·필드 표기</span></li>
             <li><strong>0건</strong><span>검색 문장 저장</span></li>
           </ul>
         </div>
@@ -133,7 +138,7 @@
 
     <section class="source-ribbon" aria-label="서비스 데이터 원칙">
       <ul>
-        <li><strong>3개</strong><span>공공데이터 소스</span></li>
+        <li><strong>계산 공개</strong><span>순위 산식과 탈락 건수</span></li>
         <li><strong>Top 3</strong><span>조건 적합 후보</span></li>
         <li><strong>필드 단위</strong><span>판단 근거 공개</span></li>
       </ul>
