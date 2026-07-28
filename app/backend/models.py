@@ -61,4 +61,7 @@ class SearchResponse(BaseModel):
     drought_panel: DroughtPanel | None = None
     evidence: list[Evidence] = Field(default_factory=list)
     disclaimer: str
+    # warnings = 사용자가 조치해야 할 문제 (조건 미인식·0건·차단·호출 실패)
     warnings: list[str] = Field(default_factory=list)
+    # notes = 데이터 성격을 알리는 상시 안내 (단계 변환·미제공 항목). 문제가 아니므로 분리한다.
+    notes: list[str] = Field(default_factory=list)

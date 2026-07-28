@@ -89,6 +89,24 @@
   margin: 0;
 }
 
+/* 데이터 성격 안내 — 경고(주황)와 달리 조용한 회색. 문제가 아니라 참고 정보다. */
+.notes-panel {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--border);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  color: var(--muted);
+  background: #f7f7f5;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.notes-panel p {
+  margin: 0;
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));

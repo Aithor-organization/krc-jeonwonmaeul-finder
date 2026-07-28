@@ -51,6 +51,34 @@ def _parse_sido(text: str) -> str | None:
     return None
 
 
+def match_sigungu(text: str | None, candidates) -> str | None:
+    """질의에서 시군구를 찾는다 (기술명세 §4.1).
+
+    후보는 **실제 데이터에 존재하는 이름만** 넘겨야 한다 — 사전을 하드코딩하면
+    데이터에 없는 지역을 인식해 '조건에 맞는 곳 없음'과 구분되지 않는다.
+
+    - 전체명("곡성군")은 항상 매칭
+    - 접미사 생략형("곡성")은 **뒤에 숫자가 오지 않을 때만** 매칭한다.
+      "충남 예산 2억"의 '예산'을 예산군으로 오인하면 예산(budget) 조건이 지역
+      조건으로 둔갑하기 때문이다.
+    """
+    if not text:
+        return None
+    names = sorted({c for c in candidates if c}, key=len, reverse=True)
+
+    for name in names:
+        if name in text:
+            return name
+
+    for name in names:
+        stem = name[:-1] if name[-1] in "시군구" else name
+        if len(stem) < 2:
+            continue
+        if re.search(rf"{re.escape(stem)}(?!\s*\d)", text):
+            return name
+    return None
+
+
 def _parse_budget(text: str) -> int | None:
     """소수 억(1.5억), 억+천/만 복합(1억5천, 1억 5000만), 단독 만/천만 처리."""
     won = 0

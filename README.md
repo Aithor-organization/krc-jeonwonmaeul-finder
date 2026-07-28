@@ -171,11 +171,23 @@ Browser                   결과 카드와 근거 모달 렌더링
 
 | 모드 | 상태 | 동작 |
 |---|---|---|
-| **sample-mode** | 기본값 | `app/backend/data/samples/*.json`으로 전체 흐름 실행 |
-| **live-mode** | 구현 예정 | KRC 활용신청 승인과 실제 응답 계약 검증 후 연결 |
+| **sample-mode** | `KRC_SERVICE_KEY` 없을 때 | `app/backend/data/samples/*.json`으로 전체 흐름 실행 |
+| **live-mode** | `KRC_SERVICE_KEY` 있을 때 | 전원마을 분양정보를 실시간 조회 (전국 167건) |
 | **LLM parser** | 선택 | `USE_LLM=1`일 때 활성화, 실패 시 규칙 파서 폴백 |
 
-`KRC_SERVICE_KEY`만 설정해도 현재 `clients.py`의 live 호출 경로는 활성화되지 않습니다. 실제 오퍼레이션명, 파라미터와 응답 스키마를 검증한 뒤 구현할 예정입니다.
+`KRC_SERVICE_KEY`를 설정하면 live-mode로 전환되고 `/api/health`의 `sample_mode`가 `false`가 됩니다. 호출이 실패하면 샘플 데이터로 내려앉되 그 사실을 응답 `warnings`에 남깁니다.
+
+**live-mode에서 알아둘 점**
+
+- **진행단계는 변환값입니다.** 실 API는 공사 진행단계(준비단계·기반조성공사단계·주택건축 준비단계·주택건축 단계·건축완료후 입주단계)를 반환하므로, 서비스 어휘(분양예정·분양중·분양완료)로 매핑해 표시하고 그 사실을 `warnings`로 고지합니다.
+- **마을 상세(인구·빈집수)는 제공하지 않습니다.** 농촌마을현황이 전국 2.8만 건 규모라 지구별 조인에 별도 설계가 필요합니다. 이 때문에 신뢰도 등급은 `C`로 표기됩니다.
+- **계획세대수 0은 미공개**로 보고 "확인 불가"로 처리합니다(실측 7/167건).
+
+| 데이터셋 | 엔드포인트 |
+|---|---|
+| 전원마을 분양정보 (15104395) | `https://apis.data.go.kr/B552149/raiseSaleVill/saleVill` |
+| 농촌마을현황 (15104291) | `https://apis.data.go.kr/B552149/raiseRuralVill/infoVill` |
+| 논가뭄지도 (15117185) | OpenAPI 아님 — 파일데이터(CSV) 제공 |
 
 ---
 

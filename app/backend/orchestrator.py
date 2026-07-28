@@ -36,10 +36,12 @@ class Orchestrator:
         return SearchResponse(
             query_parsed=parsed, top=[], drought_panel=None, evidence=[],
             disclaimer=config.DISCLAIMER, warnings=warnings,
+            notes=list(self.client.notes),
         )
 
     def search(self, query: str | None = None, structured=None, top_n: int = 3) -> SearchResponse:
         warnings = list(self.client.warnings)
+        notes = list(self.client.notes)
 
         # 1) Input Guard + 파싱 (structured 경로도 guard 적용 — 우회 방지)
         if structured is not None:
@@ -61,9 +63,14 @@ class Orchestrator:
             else:
                 parsed = intent.parse(cleaned)
 
+            # 시군구는 데이터에 존재하는 이름으로만 보강 (파서는 시도까지만 인식)
+            if not parsed.region.sigungu:
+                parsed.region.sigungu = intent.match_sigungu(
+                    cleaned, self.client.available_sigungu())
+
         # 조건 미인식 → 전체 덤프 대신 안내 (두 입력 경로 공통)
-        if not (parsed.region.sido or parsed.sale_stage or parsed.budget_max_krw
-                or parsed.preferences or parsed.household_min):
+        if not (parsed.region.sido or parsed.region.sigungu or parsed.sale_stage
+                or parsed.budget_max_krw or parsed.preferences or parsed.household_min):
             if (query or getattr(parsed, "raw", "") or "").strip():
                 warnings.append("조건을 인식하지 못했습니다. 지역·예산·분양 조건(예: '충남 예산 2억 분양 중')을 입력해 주세요.")
             return self._empty(parsed, warnings)
@@ -144,4 +151,5 @@ class Orchestrator:
         return SearchResponse(
             query_parsed=parsed, top=top, drought_panel=panel,
             evidence=all_ev, disclaimer=config.DISCLAIMER, warnings=warnings,
+            notes=notes,
         )

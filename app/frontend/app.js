@@ -15,7 +15,9 @@ const el = {
   parsedInfo: $("#parsed-info"),
   modeBadge: $("#mode-badge"),
   dataMode: $("#data-mode"),
+  modeFlag: $(".mode-flag"),
   disclaimer: $("#disclaimer"),
+  notes: $("#notes"),
   modal: $("#modal"),
   modalBody: $("#modal-body"),
   modalClose: $("#modal-close"),
@@ -171,7 +173,10 @@ function cardHtml(card, drought, index) {
         '<div class="metric"><div class="key">분양율</div><div class="value">' + esc(formatNumber(card.sale_rate, "%")) + "</div></div>" +
         '<div class="metric"><div class="key">계획세대수</div><div class="value">' + esc(formatNumber(card.planned_households, "세대")) + "</div></div>" +
       "</div>" +
-      '<p class="village-summary">마을 현황 · 인구 ' + esc(formatNumber(card.population, "명")) + " · 빈집 " + esc(formatNumber(card.vacant_houses, "호")) + "</p>" +
+      // 인구·빈집이 둘 다 없으면 줄 자체를 숨긴다 ("확인 불가 · 확인 불가"는 정보가 아니라 노이즈)
+      (card.population != null || card.vacant_houses != null
+        ? '<p class="village-summary">마을 현황 · 인구 ' + esc(formatNumber(card.population, "명")) + " · 빈집 " + esc(formatNumber(card.vacant_houses, "호")) + "</p>"
+        : "") +
       (reasons ? '<ul class="reasons" aria-label="선정 이유">' + reasons + "</ul>" : "") +
       '<div class="score-row"><span>조건 적합도</span><strong>' + score + "%</strong></div>" +
       '<div class="score-bar" role="progressbar" aria-label="조건 적합도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + score + '">' +
@@ -197,6 +202,17 @@ function renderWarnings(warnings) {
       messages.map((message) => "<p>" + esc(message) + "</p>").join("") +
     "</div>"
   );
+}
+
+function renderNotes(notes) {
+  if (!el.notes) return;
+  const messages = Array.isArray(notes) ? notes.filter(Boolean) : [];
+  // 안내는 '문제'가 아니므로 경고 패널과 분리해 조용한 메모로 표시한다.
+  el.notes.innerHTML = messages.length
+    ? '<div class="notes-panel">' +
+        messages.map((message) => "<p>" + esc(message) + "</p>").join("") +
+      "</div>"
+    : "";
 }
 
 function renderEmpty(message) {
@@ -289,6 +305,7 @@ async function runSearch() {
     el.disclaimer.textContent = lastDisclaimer;
     el.parsedInfo.textContent = parsedSummary(data.query_parsed);
     renderWarnings(data.warnings);
+    renderNotes(data.notes);
 
     const results = Array.isArray(data.top) ? data.top : [];
     if (!results.length) {
@@ -311,11 +328,15 @@ async function loadHealth() {
     const response = await fetchWithTimeout("/api/health", { headers: { Accept: "application/json" } }, 5000);
     if (!response.ok) throw new Error("HTTP " + response.status);
     const health = await response.json();
-    el.modeBadge.classList.toggle("is-live", !health.sample_mode);
-    el.dataMode.textContent = health.sample_mode ? "샘플 데이터로 체험 중" : "공공데이터 연결 모드";
+    const live = !health.sample_mode;
+    if (el.modeBadge) el.modeBadge.classList.toggle("is-live", live);
+    if (el.dataMode) el.dataMode.textContent = live ? "공공데이터 연결 모드" : "샘플 데이터로 체험 중";
+    // 푸터 표시는 하드코딩이었다 — 실제 모드와 어긋나면 서비스가 거짓말을 하게 된다.
+    if (el.modeFlag) el.modeFlag.textContent = live ? "공공데이터 연결 모드로 동작 중" : "sample-mode로 동작 중";
   } catch (_error) {
-    el.modeBadge.classList.add("is-error");
-    el.dataMode.textContent = "데이터 상태 확인 불가";
+    if (el.modeBadge) el.modeBadge.classList.add("is-error");
+    if (el.dataMode) el.dataMode.textContent = "데이터 상태 확인 불가";
+    if (el.modeFlag) el.modeFlag.textContent = "데이터 상태 확인 불가";
   }
 }
 

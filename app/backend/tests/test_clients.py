@@ -1,10 +1,10 @@
 from clients import KrcDataClient
 
 
-def test_sample_mode_warns():
+def test_sample_mode_notes():
     c = KrcDataClient(sample_mode=True)
     assert c.sample_mode
-    assert any("sample-mode" in w for w in c.warnings)
+    assert any("sample-mode" in n for n in c.notes)
 
 
 def test_get_sales_filter():
