@@ -284,7 +284,10 @@ function renderTrace(trace) {
         "</dl>" +
         "<h3>후보가 좁혀진 과정</h3>" +
         '<ol class="trace-funnel">' + funnel + "</ol>" +
-        "<h3>점수 계산</h3>" + scores +
+        // 0건 검색에서도 funnel은 '왜 0건인지'를 설명하므로 그린다.
+        // 다만 점수 계산은 채울 내용이 없으므로 제목까지 통째로 뺀다 —
+        // 빈 제목만 남으면 패널이 뭔가 빠진 것처럼 보인다.
+        (scores ? "<h3>점수 계산</h3>" + scores : "") +
         '<p class="trace-foot">' +
           (trace.deterministic
             ? "같은 문장으로 다시 검색하면 같은 값이 나옵니다 — 조건 해석부터 순위까지 전부 규칙 기반입니다. "

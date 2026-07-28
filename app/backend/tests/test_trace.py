@@ -201,3 +201,25 @@ def test_frontend_footer_respects_deterministic_flag():
     app_js = client.get("/app.js").text
     assert "trace.deterministic" in app_js
     assert "결과가 바뀔 수 있습니다" in app_js
+
+
+def test_zero_result_keeps_funnel_but_hides_empty_score_section():
+    """0건이어도 funnel은 '왜 0건인지'를 설명하므로 남긴다.
+
+    다만 점수 계산은 채울 내용이 없다 — 제목만 남으면 패널이 고장난 것처럼 보인다.
+    """
+    r = Orchestrator().search(query="서울 강남 아파트")
+    assert r.top == []
+    assert r.trace and r.trace.funnel, "0건 사유를 설명하는 funnel은 있어야 한다"
+    assert r.trace.funnel[-1].count == 0
+    assert r.trace.scores == []
+
+    app_js = client.get("/app.js").text
+    assert 'scores ? "<h3>점수 계산</h3>" + scores : ""' in app_js, \
+        "점수가 없으면 제목까지 빼야 한다"
+
+
+def test_unrecognized_query_has_no_trace_at_all():
+    """조건 자체를 못 읽었으면 계산이 시작되지도 않았다 — funnel도 없다."""
+    r = Orchestrator().search(query="asdfqwer")
+    assert r.top == [] and r.trace is None
