@@ -53,6 +53,9 @@ class DroughtPanel(BaseModel):
 class SearchRequest(BaseModel):
     query: str | None = None
     structured: ParsedQuery | None = None
+    # 사용자가 화면에서 직접 입력하는 OpenAI 키(BYOK). 서버는 저장·로깅하지 않고
+    # 해당 요청의 파싱에만 쓰고 버린다. 응답에도 절대 포함하지 않는다.
+    openai_api_key: str | None = None
 
 
 class SearchResponse(BaseModel):

@@ -39,7 +39,8 @@ class Orchestrator:
             notes=list(self.client.notes),
         )
 
-    def search(self, query: str | None = None, structured=None, top_n: int = 3) -> SearchResponse:
+    def search(self, query: str | None = None, structured=None, top_n: int = 3,
+               api_key: str | None = None) -> SearchResponse:
         warnings = list(self.client.warnings)
         notes = list(self.client.notes)
 
@@ -54,11 +55,14 @@ class Orchestrator:
             if blocked:
                 return self._empty(intent.parse(""), reasons)
             warnings.extend(reasons)
-            if config.LLM_ENABLED:
-                parsed, meta = llm_intent.parse(cleaned)
+            # 사용자가 화면에서 키를 넣었으면 서버 설정과 무관하게 LLM 경로를 쓴다 (BYOK)
+            user_key = (api_key or "").strip()
+            if user_key or config.LLM_ENABLED:
+                parsed, meta = llm_intent.parse(cleaned, api_key=user_key or None)
                 if meta.get("model"):
-                    warnings.append(f"자연어 파싱 모델: {meta['model']} ({meta['tier']} tier)")
+                    notes.append(f"자연어 파싱 모델: {meta['model']} ({meta['tier']} tier)")
                 if meta.get("fallback"):
+                    # meta['error']는 llm_intent.redact()로 키가 마스킹된 상태
                     warnings.append(f"LLM 파싱 폴백(규칙 파서 사용): {meta.get('error', '')}")
             else:
                 parsed = intent.parse(cleaned)

@@ -21,7 +21,37 @@ const el = {
   modal: $("#modal"),
   modalBody: $("#modal-body"),
   modalClose: $("#modal-close"),
+  keyInput: $("#openai-key"),
+  keyClear: $("#byok-clear"),
+  byokState: $("#byok-state"),
 };
+
+// BYOK: 키는 sessionStorage에만 둔다 — 탭을 닫으면 사라지고 다른 탭과 공유되지 않는다.
+// localStorage를 쓰면 로그아웃 개념이 없는 정적 페이지에서 키가 무기한 남는다.
+const KEY_STORE = "krc.openai_key";
+
+function readStoredKey() {
+  try {
+    return window.sessionStorage.getItem(KEY_STORE) || "";
+  } catch (_error) {
+    return "";   // 프라이빗 모드 등 storage 차단 환경
+  }
+}
+
+function storeKey(value) {
+  try {
+    if (value) window.sessionStorage.setItem(KEY_STORE, value);
+    else window.sessionStorage.removeItem(KEY_STORE);
+  } catch (_error) {
+    /* storage 불가여도 이번 세션 입력값은 그대로 쓴다 */
+  }
+}
+
+function syncByokState() {
+  if (!el.byokState) return;
+  const has = Boolean(el.keyInput && el.keyInput.value.trim());
+  el.byokState.textContent = has ? "(적용 중 · 이 탭에만 보관)" : "(선택 · 규칙 파서로도 동작)";
+}
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const numberFormatter = new Intl.NumberFormat("ko-KR");
@@ -291,10 +321,14 @@ async function runSearch() {
   scrollToElement(el.results);
 
   try {
+    const apiKey = el.keyInput ? el.keyInput.value.trim() : "";
+    const payload = { query };
+    if (apiKey) payload.openai_api_key = apiKey;   // 없으면 필드 자체를 보내지 않는다
+
     const response = await fetchWithTimeout("/api/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) throw new Error("HTTP " + response.status);
     const data = await response.json();
@@ -379,6 +413,25 @@ el.cards.addEventListener("click", (event) => {
     window.setTimeout(() => el.query.focus(), reduceMotion.matches ? 0 : 450);
   }
 });
+
+// --- BYOK 키 입력 배선 ---
+if (el.keyInput) {
+  el.keyInput.value = readStoredKey();
+  syncByokState();
+  el.keyInput.addEventListener("input", () => {
+    storeKey(el.keyInput.value.trim());
+    syncByokState();
+  });
+}
+
+if (el.keyClear) {
+  el.keyClear.addEventListener("click", () => {
+    if (el.keyInput) el.keyInput.value = "";
+    storeKey("");
+    syncByokState();
+    if (el.keyInput) el.keyInput.focus();
+  });
+}
 
 el.modalClose.addEventListener("click", () => el.modal.close());
 el.modal.addEventListener("click", (event) => {

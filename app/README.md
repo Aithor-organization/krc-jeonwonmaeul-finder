@@ -23,21 +23,29 @@ PYTHONPATH="$(pwd)" .venv/bin/python -m pytest tests -q
 
 ## 모드
 - **sample-mode (기본)**: `KRC_SERVICE_KEY` 미설정 시 `data/samples/*.json`로 동작 (오프라인·발표 백업).
-- **live-mode**: 공공데이터포털 활용신청 승인 후 `export KRC_SERVICE_KEY=...` → `clients.py`의 live 경로 활성화(엔드포인트 오퍼레이션명·`county` 파라미터는 실호출로 확정 필요 — 기술명세 §14).
+- **live-mode**: 공공데이터포털 활용신청 승인 후 `export KRC_SERVICE_KEY=...` → `clients.py`의 live 경로 활성화. 엔드포인트는 실호출로 확정됨 (`krc_live.py` — 전원마을 분양정보 전국 167건).
 
 ## LLM 자연어 파서 모델 라우팅 (선택)
-기본은 결정론 규칙 파서(키 불필요). `USE_LLM=1` 설정 시 OpenAI 모델로 파싱하며 **질의 복잡도에 따라 3개 티어로 라우팅**:
+기본은 결정론 규칙 파서(키 불필요). 키가 주어지면 OpenAI 모델로 파싱하며 **질의 복잡도에 따라 3개 티어로 라우팅**:
 - simple → `gpt-5.4-nano` · medium → `gpt-5.4-mini` · complex → `gpt-5.6-luna`
 
+**키 우선순위**: 요청 본문 `openai_api_key`(BYOK) > `OPENAI_API_KEY` > `OPENAI_KEY_FILE`.
+요청에 키가 오면 `USE_LLM` 설정과 무관하게 LLM 경로가 켜집니다.
+
 ```bash
-export USE_LLM=1                     # LLM 파서 활성
-# 키는 코드/커밋에 두지 않음 — 파일 또는 환경에서 런타임 로드:
-export OPENAI_KEY_FILE=/path/to/keyfile.md   # "openai api key : sk-..." 줄 파싱 (기본값 설정됨)
-# 또는  export OPENAI_API_KEY=sk-...
+# (A) 사용자가 화면/요청에서 직접 제공 — 배포 환경 권장. 서버 설정 불필요
+curl -sX POST :8000/api/search -H 'Content-Type: application/json' \
+  -d '{"query":"충남 분양 중","openai_api_key":"sk-..."}'
+
+# (B) 서버에 고정 — 로컬 개발용
+export USE_LLM=1
+export OPENAI_API_KEY=sk-...
+# 또는  export OPENAI_KEY_FILE=/path/to/keyfile.md   # "openai api key : sk-..." 줄 파싱
 ```
 - 모델 오버라이드: `LLM_MODEL_SIMPLE`/`LLM_MODEL_MEDIUM`/`LLM_MODEL_COMPLEX` 환경변수.
 - **폴백**: LLM 호출 실패 시 자동으로 규칙 파서 사용(무중단). PII는 호출 전 guard가 마스킹.
-- 헬스체크(`/api/health`)에 `llm_enabled`·`llm_models` 표시. 라이브 테스트: `USE_LLM=1 pytest tests/test_llm_live.py`.
+- **키 비노출**: 사용자 키는 서버에 저장하지 않으며, OpenAI 오류 메시지가 키 일부를 되돌려주므로 `llm_intent.redact()`로 `sk-***` 마스킹 후에만 `warnings`에 싣습니다 (`tests/test_byok.py`).
+- 헬스체크(`/api/health`)에 `llm_enabled`·`llm_models`·`byok_supported` 표시. 라이브 테스트: `USE_LLM=1 pytest tests/test_llm_live.py`.
 
 ## 구조
 ```

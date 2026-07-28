@@ -93,7 +93,9 @@ def test_parse_http_error_falls_back(monkeypatch):
     monkeypatch.setattr(llm_intent, "_call", boom)
     parsed, meta = llm_intent.parse("충남 예산 2억 분양 중")
     assert meta["fallback"] is True
-    assert "http_429" in meta["error"]
+    # 응답 본문("too many requests")을 싣지 않고 상태코드를 안내 문구로 바꾼다
+    assert "한도" in meta["error"]
+    assert "too many requests" not in meta["error"]
     assert parsed.region.sido == "충청남도"    # 결정론 폴백 동작
 
 

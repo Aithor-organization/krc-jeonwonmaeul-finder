@@ -31,12 +31,16 @@ def health() -> dict:
             "medium": config.LLM_MODEL_MEDIUM,
             "complex": config.LLM_MODEL_COMPLEX,
         } if config.LLM_ENABLED else None,
+        # 서버에 키가 없어도 사용자가 화면에서 직접 키를 넣어 LLM 파싱을 쓸 수 있다
+        "byok_supported": True,
     }
 
 
 @app.post("/api/search", response_model=SearchResponse)
 def search(req: SearchRequest) -> SearchResponse:
-    return orch.search(query=req.query, structured=req.structured)
+    # openai_api_key는 이 호출의 파싱에만 쓰이고 저장·로깅되지 않는다 (BYOK)
+    return orch.search(query=req.query, structured=req.structured,
+                       api_key=req.openai_api_key)
 
 
 @app.get("/api/village/{gu_id}")

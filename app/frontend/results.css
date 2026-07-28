@@ -89,6 +89,89 @@
   margin: 0;
 }
 
+/* BYOK — 선택 기능이므로 접힌 상태가 기본. 검색 흐름을 가리지 않는다. */
+.byok {
+  margin-top: 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.byok > summary {
+  cursor: pointer;
+  padding: 6px 0;
+  list-style: none;
+  user-select: none;
+}
+
+.byok > summary::-webkit-details-marker { display: none; }
+
+.byok > summary::before {
+  content: "＋";
+  display: inline-block;
+  width: 1.1em;
+  font-weight: 700;
+}
+
+.byok[open] > summary::before { content: "－"; }
+
+.byok > summary em {
+  font-style: normal;
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+.byok-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.byok-body label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.byok-control {
+  display: flex;
+  gap: 8px;
+}
+
+.byok-control input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.94);
+  color: #101914;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.byok-clear {
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.byok-clear:hover { background: rgba(255, 255, 255, 0.12); }
+
+.byok-help {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.65;
+  opacity: 0.82;
+}
+
 /* 데이터 성격 안내 — 경고(주황)와 달리 조용한 회색. 문제가 아니라 참고 정보다. */
 .notes-panel {
   display: grid;

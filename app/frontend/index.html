@@ -76,6 +76,26 @@
               </button>
             </div>
             <p id="query-error" class="query-error" role="alert" hidden>검색 조건을 한 문장으로 입력해 주세요.</p>
+
+            <details class="byok">
+              <summary>
+                <span>AI 파싱 켜기 <em id="byok-state">(선택 · 규칙 파서로도 동작)</em></span>
+              </summary>
+              <div class="byok-body">
+                <label for="openai-key">OpenAI API 키</label>
+                <div class="byok-control">
+                  <input id="openai-key" type="password" autocomplete="off" spellcheck="false"
+                         placeholder="sk-..." aria-describedby="byok-help" />
+                  <button id="byok-clear" type="button" class="byok-clear">지우기</button>
+                </div>
+                <p id="byok-help" class="byok-help">
+                  키는 <strong>이 브라우저 탭에만</strong> 보관되며(탭을 닫으면 사라짐),
+                  검색할 때 자연어 해석에만 쓰이고 <strong>서버에 저장·기록하지 않습니다</strong>.
+                  비워두면 규칙 기반 파서로 동작합니다 — 검색 결과의 수치와 근거는
+                  두 경우 모두 공공데이터에서 그대로 가져옵니다.
+                </p>
+              </div>
+            </details>
           </form>
 
           <div id="query-help" class="examples" aria-label="검색 예시">

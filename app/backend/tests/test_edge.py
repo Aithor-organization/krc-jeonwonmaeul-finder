@@ -108,23 +108,26 @@ def test_orchestrator_household_no_match_empty():
     assert any("세대 이상 조건" in w for w in resp.warnings)
 
 
-def test_orchestrator_llm_path_warns_model(monkeypatch):
+def test_orchestrator_llm_path_notes_model(monkeypatch):
+    """어떤 모델로 해석했는지는 문제가 아니라 안내 → notes."""
     monkeypatch.setattr(config, "LLM_ENABLED", True)
     monkeypatch.setattr(
         llm_intent, "parse",
-        lambda q: (intent.parse(q), {"model": "gpt-5.4-mini", "tier": "medium",
-                                     "fallback": False}),
+        lambda q, api_key=None: (intent.parse(q), {"model": "gpt-5.4-mini",
+                                                   "tier": "medium", "fallback": False}),
     )
     resp = Orchestrator().search(query="충남 분양 중")
-    assert any("파싱 모델" in w for w in resp.warnings)
+    assert any("파싱 모델" in n for n in resp.notes)
 
 
 def test_orchestrator_llm_fallback_warns(monkeypatch):
+    """폴백은 사용자가 알아야 할 문제 → warnings 유지."""
     monkeypatch.setattr(config, "LLM_ENABLED", True)
     monkeypatch.setattr(
         llm_intent, "parse",
-        lambda q: (intent.parse(q), {"model": "gpt-5.4-mini", "tier": "medium",
-                                     "fallback": True, "error": "http_429: x"}),
+        lambda q, api_key=None: (intent.parse(q), {"model": "gpt-5.4-mini",
+                                                   "tier": "medium", "fallback": True,
+                                                   "error": "http_429: x"}),
     )
     resp = Orchestrator().search(query="충남 분양 중")
     assert any("폴백" in w for w in resp.warnings)

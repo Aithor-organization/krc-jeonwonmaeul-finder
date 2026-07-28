@@ -37,6 +37,38 @@ _SYSTEM = (
 )
 
 
+# `*`와 `.`를 포함하는 이유: OpenAI가 되돌려주는 문자열은 raw 키가 아니라
+# 'sk-proj-****************cdef'처럼 자체 마스킹된 형태다. 문자 클래스에 `*`가
+# 없으면 이 형태를 못 잡아 **뒤 4자리가 그대로 남는다** (실측으로 확인).
+_KEY_LIKE = re.compile(r"sk-[A-Za-z0-9_\-*.]{4,}")
+
+# OpenAI 오류 본문은 사용자에게 줄 정보가 거의 없고 키 조각을 담는다.
+# 본문을 싣는 대신 상태코드를 사람이 읽는 문장으로 바꾼다.
+_HTTP_REASON = {
+    401: "OpenAI API 키가 유효하지 않습니다.",
+    403: "이 키로는 해당 모델을 사용할 수 없습니다.",
+    404: "요청한 모델을 찾을 수 없습니다.",
+    429: "OpenAI 요청 한도를 초과했습니다(잠시 후 재시도).",
+    500: "OpenAI 서버 오류입니다.",
+    503: "OpenAI 서버가 일시적으로 응답하지 않습니다.",
+}
+
+
+def redact(text: object) -> str:
+    """에러 메시지에서 키 형태 문자열을 제거.
+
+    OpenAI 401 응답은 'Incorrect API key provided: sk-proj-****cdef'처럼
+    **키 일부를 그대로 되돌려준다**. 이 문자열이 warnings를 타고 화면·로그로
+    나가면 사용자 키가 유출되므로 경계에서 마스킹한다.
+    """
+    return _KEY_LIKE.sub("sk-***", str(text))
+
+
+def http_reason(code: int) -> str:
+    """HTTP 상태코드 → 사용자 안내 문구. 응답 본문은 싣지 않는다."""
+    return _HTTP_REASON.get(code, f"OpenAI 호출 실패(HTTP {code}).")
+
+
 def load_key() -> str | None:
     if config.OPENAI_KEY_ENV:
         return config.OPENAI_KEY_ENV
@@ -100,10 +132,14 @@ def _to_parsed(raw: dict, query: str) -> ParsedQuery:
     )
 
 
-def parse(query: str) -> tuple[ParsedQuery, dict]:
-    """LLM 파싱 + 메타. 실패 시 결정론 파서 폴백. 반환: (ParsedQuery, meta)."""
+def parse(query: str, api_key: str | None = None) -> tuple[ParsedQuery, dict]:
+    """LLM 파싱 + 메타. 실패 시 결정론 파서 폴백. 반환: (ParsedQuery, meta).
+
+    api_key: 사용자가 화면에서 넣은 키(BYOK). 주어지면 서버 환경변수보다 우선한다.
+    meta에는 **키를 절대 담지 않으며** 에러 문자열은 redact()로 마스킹한다.
+    """
     tier, model = route_model(query or "")
-    key = load_key()
+    key = (api_key or "").strip() or load_key()
     if not key:
         return intent.parse(query), {"model": None, "tier": tier, "fallback": True,
                                      "error": "no_api_key"}
@@ -111,9 +147,13 @@ def parse(query: str) -> tuple[ParsedQuery, dict]:
         raw = _call(model, key, query or "")
         return _to_parsed(raw, query or ""), {"model": model, "tier": tier, "fallback": False}
     except urllib.error.HTTPError as e:
-        detail = e.read().decode()[:120]
+        # 본문은 읽어서 버린다 — 키 조각이 들어 있고 사용자에게 줄 정보가 없다.
+        try:
+            e.read()
+        except Exception:
+            pass
         return intent.parse(query), {"model": model, "tier": tier, "fallback": True,
-                                     "error": f"http_{e.code}: {detail}"}
+                                     "error": redact(http_reason(e.code))}
     except Exception as e:  # 네트워크/JSON/검증 실패 → 결정론 폴백
         return intent.parse(query), {"model": model, "tier": tier, "fallback": True,
-                                     "error": f"{type(e).__name__}: {e}"}
+                                     "error": redact(f"{type(e).__name__}: {e}")}
