@@ -18,6 +18,7 @@ const el = {
   modeFlag: $(".mode-flag"),
   disclaimer: $("#disclaimer"),
   notes: $("#notes"),
+  trace: $("#trace"),
   modal: $("#modal"),
   modalBody: $("#modal-body"),
   modalClose: $("#modal-close"),
@@ -235,6 +236,62 @@ function renderNotes(notes) {
     : "";
 }
 
+/* 계산 내역 — "왜 이 결과인가"를 이 검색 한 건의 실제 숫자로 보여준다.
+   기본은 접힘: 궁금한 사람만 열게 하고 검색 흐름을 가리지 않는다. */
+function renderTrace(trace) {
+  if (!el.trace) return;
+  if (!trace || !Array.isArray(trace.funnel) || !trace.funnel.length) {
+    el.trace.innerHTML = "";
+    return;
+  }
+
+  const funnel = trace.funnel.map((step, i) => {
+    const drop = step.dropped > 0
+      ? '<span class="trace-drop">−' + esc(String(step.dropped)) + "</span>"
+      : "";
+    const note = step.note ? '<span class="trace-note">' + esc(step.note) + "</span>" : "";
+    return (
+      '<li><span class="trace-step">' + esc(String(i + 1)) + "</span>" +
+        '<span class="trace-label">' + esc(step.label) + note + "</span>" +
+        '<span class="trace-count">' + esc(formatNumber(step.count, "건")) + drop + "</span>" +
+      "</li>"
+    );
+  }).join("");
+
+  const scores = (trace.scores || []).map((card) => {
+    const rows = (card.terms || []).map((term) =>
+      "<tr><th>" + esc(term.label) + "</th>" +
+        "<td>" + esc(String(term.weight)) + " × " + esc(String(term.value)) +
+          " = <strong>" + esc(String(term.contribution)) + "</strong></td>" +
+        '<td class="trace-basis">' + esc(term.basis || "") + "</td></tr>"
+    ).join("");
+    return (
+      '<div class="trace-score">' +
+        "<h4>" + esc(card.gu_name) + ' <span>합계 ' + esc(String(card.total)) + "</span></h4>" +
+        '<table><tbody>' + rows + "</tbody></table>" +
+      "</div>"
+    );
+  }).join("");
+
+  el.trace.innerHTML = (
+    '<details class="trace-panel">' +
+      "<summary>이 결과가 나온 계산 보기</summary>" +
+      '<div class="trace-body">' +
+        '<dl class="trace-meta">' +
+          "<dt>문장을 조건으로 바꾼 주체</dt><dd>" + esc(trace.parser) + "</dd>" +
+          "<dt>AI가 관여한 범위</dt><dd>" + esc(trace.llm_scope) + "</dd>" +
+          "<dt>점수 산식</dt><dd><code>" + esc(trace.formula) + "</code></dd>" +
+        "</dl>" +
+        "<h3>후보가 좁혀진 과정</h3>" +
+        '<ol class="trace-funnel">' + funnel + "</ol>" +
+        "<h3>점수 계산</h3>" + scores +
+        '<p class="trace-foot">같은 문장으로 다시 검색하면 같은 값이 나옵니다 — 순위는 위 산식이 정하고 모델은 관여하지 않습니다. ' +
+          "이 내역은 응답에만 담기며 서버에 저장하지 않습니다.</p>" +
+      "</div>" +
+    "</details>"
+  );
+}
+
 function renderEmpty(message) {
   el.resultsTitle.setAttribute("aria-label", "조건에 맞는 전원마을을 찾지 못했습니다.");
   el.cards.innerHTML = (
@@ -255,6 +312,9 @@ function renderError(error) {
   el.resultsTitle.setAttribute("aria-label", "검색을 완료하지 못했습니다.");
   el.status.className = "status error";
   el.status.textContent = message;
+  // 실패한 검색 화면에 직전 검색의 계산 내역이 남으면 그 자체가 거짓 표시가 된다
+  renderTrace(null);
+  renderNotes([]);
   el.cards.innerHTML = (
     '<div class="empty-state">' +
       icon("refresh") +
@@ -330,6 +390,7 @@ async function runSearch() {
     el.parsedInfo.textContent = parsedSummary(data.query_parsed);
     renderWarnings(data.warnings);
     renderNotes(data.notes);
+    renderTrace(data.trace);
 
     const results = Array.isArray(data.top) ? data.top : [];
     if (!results.length) {

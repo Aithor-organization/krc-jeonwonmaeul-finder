@@ -160,3 +160,26 @@ def test_settings_uses_shared_section_wrapper():
     html = client.get("/settings.html").text
     assert 'class="section-shell' in html
     assert "section-inner" not in html
+
+
+def test_trace_panel_is_wired():
+    """계산 내역 컨테이너 + 렌더 함수 + 호출이 모두 있어야 화면에 그려진다."""
+    html = client.get("/").text
+    app_js = client.get("/app.js").text
+    assert 'id="trace"' in html
+    assert "function renderTrace" in app_js
+    assert "renderTrace(data.trace)" in app_js
+
+
+def test_trace_is_collapsed_by_default():
+    """기본 펼침이면 검색 흐름을 가린다 — details에 open이 없어야 한다."""
+    app_js = client.get("/app.js").text
+    assert '<details class="trace-panel">' in app_js
+    assert '<details class="trace-panel" open' not in app_js
+
+
+def test_trace_cleared_on_error():
+    """실패 화면에 직전 검색의 계산 내역이 남으면 그 자체가 거짓 표시가 된다."""
+    app_js = client.get("/app.js").text
+    error_fn = app_js.split("function renderError")[1].split("function ")[0]
+    assert "renderTrace(null)" in error_fn

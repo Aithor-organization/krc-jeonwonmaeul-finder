@@ -8,7 +8,12 @@ import intent
 import llm_intent
 import scoring
 from clients import KrcDataClient
-from models import DroughtPanel, Evidence, SearchResponse, VillageCard
+from models import (CardScore, DroughtPanel, Evidence, FunnelStep, ScoreTerm,
+                    SearchResponse, SearchTrace, VillageCard)
+
+# LLM이 관여하는 범위. 순위·점수·수치는 전부 결정론 코드가 만든다.
+LLM_SCOPE = "문장 → 검색 조건 변환에만. 순위·점수·수치는 관여하지 않습니다."
+RULE_PARSER = "규칙 파서 (결정론, 외부 호출 없음)"
 
 
 def _num(v):
@@ -48,11 +53,13 @@ class Orchestrator:
         notes = list(self.client.notes)
 
         # 1) Input Guard + 파싱 (structured 경로도 guard 적용 — 우회 방지)
+        parser_label = RULE_PARSER
         if structured is not None:
             _, blocked, _reasons = guards.inspect_input(getattr(structured, "raw", "") or "")
             if blocked:
                 return self._empty(intent.parse(""), ["prompt injection 의심 패턴 감지 — 요청 차단"])
             parsed = structured
+            parser_label = "구조화 입력 (문장 파싱 없음)"
         else:
             cleaned, blocked, reasons = guards.inspect_input(query)
             if blocked:
@@ -67,6 +74,9 @@ class Orchestrator:
                 if meta.get("fallback"):
                     # meta['error']는 llm_intent.redact()로 키가 마스킹된 상태
                     warnings.append(f"LLM 파싱 폴백(규칙 파서 사용): {meta.get('error', '')}")
+                # 폴백이면 실제로 문장을 해석한 건 규칙 파서다 — 모델명을 적으면 거짓이 된다
+                if meta.get("model") and not meta.get("fallback"):
+                    parser_label = f"{meta['model']} ({meta['tier']} tier)"
             else:
                 parsed = intent.parse(cleaned)
 
@@ -86,20 +96,47 @@ class Orchestrator:
             warnings.append("입력 해석 신뢰도가 낮습니다. 지역·예산·분양 조건을 함께 입력하면 정확해집니다.")
 
         # 2) 전원마을 분양정보 조회. 진행단계 조건은 자동 완화하지 않음(위반 결과 노출 방지)
+        #    단계별로 나눠 조회하는 이유: 각 조건에서 몇 건이 떨어졌는지 화면에 보이기 위함.
+        #    167건 규모의 메모리 필터라 4회 순회 비용은 무시할 수 있다.
         sido = parsed.region.sido
+        sigungu = parsed.region.sigungu
         stages = parsed.sale_stage or None
-        sales = self.client.get_sales(sido=sido, sigungu=parsed.region.sigungu, stages=stages)
+
+        funnel: list[FunnelStep] = []
+        prev = self.client.get_sales()
+        funnel.append(FunnelStep(label="전국 전원마을 분양정보", count=len(prev)))
+
+        if sido:
+            cur = self.client.get_sales(sido=sido)
+            funnel.append(FunnelStep(label=f"시도 = {sido}", count=len(cur),
+                                     dropped=len(prev) - len(cur)))
+            prev = cur
+        if sigungu:
+            cur = self.client.get_sales(sido=sido, sigungu=sigungu)
+            funnel.append(FunnelStep(label=f"시군구 = {sigungu}", count=len(cur),
+                                     dropped=len(prev) - len(cur)))
+            prev = cur
+        if stages:
+            cur = self.client.get_sales(sido=sido, sigungu=sigungu, stages=stages)
+            funnel.append(FunnelStep(label=f"진행단계 ∈ {', '.join(stages)}", count=len(cur),
+                                     dropped=len(prev) - len(cur)))
+            prev = cur
+
+        sales = prev
         if not sales and stages:
             warnings.append("요청한 진행단계에 맞는 지구가 없습니다. 진행단계 조건을 바꿔 다시 검색해 보세요.")
 
         # 세대수 조건 필터 (계획세대수 기준). 미충족 시 완화 없이 빈 결과
         if parsed.household_min:
             filtered = [s for s in sales if (_num(s.get("계획세대수")) or 0) >= parsed.household_min]
+            before = len(sales)
             if filtered:
                 sales = filtered
             elif sales:
                 sales = []
                 warnings.append(f"{parsed.household_min}세대 이상 조건에 맞는 지구가 없습니다.")
+            funnel.append(FunnelStep(label=f"계획세대수 ≥ {parsed.household_min}",
+                                     count=len(sales), dropped=before - len(sales)))
 
         # 예산은 참고용 — 분양가 데이터 부재로 필터 미적용 (정직 고지)
         if parsed.budget_max_krw:
@@ -110,9 +147,12 @@ class Orchestrator:
 
         # 3) 점수 + 카드 (물 정보 미포함, 수치 안전 변환, 출력 가드)
         cards: list[VillageCard] = []
+        breakdowns: dict[str, list[dict]] = {}   # gu_id → 산식 전개 (표시 전용)
         for sale in sales:
             village = self.client.get_village(sale.get("법정동코드"))
             score, grade, reasons = scoring.score_card(parsed, sale, village)
+            breakdowns[str(sale.get("gu_id", ""))] = scoring.score_breakdown(
+                parsed, sale, village)
             cards.append(VillageCard(
                 gu_id=str(sale.get("gu_id", "")),
                 gu_name=guards.inspect_output(str(sale.get("지구명", ""))),
@@ -129,6 +169,12 @@ class Orchestrator:
             ))
         cards.sort(key=lambda c: (c.score, 100 - (c.sale_rate if c.sale_rate is not None else 100)), reverse=True)
         top = cards[:top_n]
+        if cards:
+            funnel.append(FunnelStep(
+                label=f"점수순 상위 {top_n}건 표시", count=len(top),
+                dropped=len(cards) - len(top),
+                note="탈락이 아니라 표시 개수 제한입니다 — 조건은 모두 통과했습니다."
+                if len(cards) > len(top) else None))
 
         # 4) Evidence 바인딩 — 미바인딩 시 경고 (수치는 카드 필드에서 구성되어 항상 바인딩)
         all_ev: list[Evidence] = []
@@ -155,8 +201,24 @@ class Orchestrator:
                         claim=f"[{panel.sigungu}] 평년대비 저수율 {nr}%",
                         api=config.API_DROUGHT, field="평년대비", value=nr))
 
+        # 6) 계산 내역 — 이 응답에만 실리고 서버에는 남기지 않는다
+        #    ("검색 문장 저장 0건" 주장과 충돌하지 않도록 저장 경로를 만들지 않음)
+        trace = SearchTrace(
+            parser=parser_label,
+            llm_scope=LLM_SCOPE,
+            formula=scoring.FORMULA,
+            funnel=funnel,
+            scores=[
+                CardScore(
+                    gu_id=c.gu_id, gu_name=c.gu_name, total=c.score,
+                    terms=[ScoreTerm(**t) for t in breakdowns.get(c.gu_id, [])],
+                )
+                for c in top
+            ],
+        )
+
         return SearchResponse(
             query_parsed=parsed, top=top, drought_panel=panel,
             evidence=all_ev, disclaimer=config.DISCLAIMER, warnings=warnings,
-            notes=notes,
+            notes=notes, trace=trace,
         )

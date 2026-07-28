@@ -50,6 +50,44 @@ class DroughtPanel(BaseModel):
     note: str = "논가뭄지도 연1회 갱신·참고용"
 
 
+class FunnelStep(BaseModel):
+    """후보가 줄어든 단계 하나. 탈락 건수를 함께 담아 '숨긴 게 아님'을 보인다."""
+    label: str
+    count: int
+    dropped: int = 0
+    note: str | None = None
+
+
+class ScoreTerm(BaseModel):
+    """점수 한 항의 전개. scoring._terms가 만든 값을 그대로 옮긴다."""
+    label: str
+    weight: float
+    value: float
+    contribution: float
+    basis: str
+
+
+class CardScore(BaseModel):
+    gu_id: str
+    gu_name: str
+    terms: list[ScoreTerm] = Field(default_factory=list)
+    total: float
+
+
+class SearchTrace(BaseModel):
+    """이 검색 한 건이 어떻게 계산됐는지. 서버에 저장하지 않고 응답에만 실린다.
+
+    할루시네이션 여부를 판단하려면 '모델이 무엇을 했나'가 아니라
+    '모델이 어디까지만 했나'를 봐야 한다 — parser/llm_scope가 그 경계를 명시한다.
+    """
+    parser: str                 # 문장을 조건으로 바꾼 주체
+    llm_scope: str              # LLM이 관여한 범위 (순위·수치 제외)
+    formula: str                # 점수 산식
+    deterministic: bool = True  # 같은 입력 → 같은 결과
+    funnel: list[FunnelStep] = Field(default_factory=list)
+    scores: list[CardScore] = Field(default_factory=list)
+
+
 class SearchRequest(BaseModel):
     query: str | None = None
     structured: ParsedQuery | None = None
@@ -68,3 +106,5 @@ class SearchResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     # notes = 데이터 성격을 알리는 상시 안내 (단계 변환·미제공 항목). 문제가 아니므로 분리한다.
     notes: list[str] = Field(default_factory=list)
+    # trace = 이 결과가 나온 계산 내역 (화면의 "계산 내역" 패널이 그린다)
+    trace: SearchTrace | None = None
