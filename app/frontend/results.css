@@ -639,8 +639,58 @@ body.results-mode .results-section {
 }
 
 .card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: auto;
   padding-top: 20px;
+}
+
+/* 카드가 막다른 길이 아니게 하는 줄. 지도·시군구청이 모달 안에만 있어서
+   카드만 읽은 사람은 읽고 끝났다. */
+.action-link {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--forest-700);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color 160ms ease-out, background 160ms ease-out;
+}
+
+.action-link:hover {
+  border-color: var(--forest-700);
+  background: var(--forest-100);
+}
+
+.action-note {
+  flex: 1 0 100%;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* 통계 원문은 접어 두되 지우지 않는다 — 펼치면 그대로 나온다 */
+.res-detail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.res-detail > summary {
+  color: var(--forest-700);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.res-detail[open] > summary {
+  margin-bottom: 8px;
 }
 
 .evidence-button,

@@ -1,6 +1,8 @@
 """파이프라인 조립 (기술명세 §2.1): guard → parse → fetch → score → evidence → panel → 고지."""
 from __future__ import annotations
 
+import re
+
 import config
 import evidence as evidence_mod
 import guards
@@ -34,20 +36,82 @@ def _int(v):
     return int(n) if n is not None else None
 
 
-def _clean_resources(raw) -> dict[str, list[str]] | None:
-    """자원 원문도 다른 값과 같은 출력 가드를 태운다.
+# "라벨 : 숫자"가 반복되면 문장이 아니라 표다. 이 형태만 보고 판별하므로
+# 내용을 해석하지 않는다 — 같은 입력이면 언제나 같은 결과다.
+#
+# 구분자로 `-`도 쓰인다 ("논 보통답 - 0 사질답 - 20", 뇌곡). 다만 `-`는
+# **뒤에 공백이 있을 때만** 구분자로 본다 — 그러지 않으면 "1월 평균기온 -1. 5°C"
+# 의 음수 부호가 걸린다. `:`에 같은 제약을 걸지 않는 이유는 "연평균기온 : 14.5℃"
+# 처럼 숫자가 단위에 붙어 있는 진짜 표를 놓치기 때문이다.
+_LABELLED_NUMBER = re.compile(r":\s*[\d,]+(?:\D|$)|-\s+[\d,]+(?=\s|$)")
+_STAT_PAIRS = 3
+
+# 카드 한 장에 보이는 주요 자원 항목 수. 넘는 만큼은 접는다.
+# 앙성은 13건이라 카드가 1,400px를 넘었다 — 화면 하나를 넘기면 목록이 아니라 덤프다.
+VISIBLE_RESOURCES = 6
+
+# 원천이 빈칸 대신 적어 넣은 서식 채움말. 화면에 그대로 나가면
+# "생산·경제 — 해당사항없음"처럼 항목인 척하는 빈 줄이 된다.
+#
+# ⚠️ "특산물자원 없음" / "산업시설 없음"은 **거르지 않는다** — 무엇을 확인했고
+# 없었는지 말해 주므로 정보다. 대상은 무엇에 대한 말인지조차 없는 것뿐이다.
+_RESOURCE_PLACEHOLDERS = {"해당사항없음", "해당없음", "특이사항없음", "미해당", "없음", "해당사항"}
+
+
+def is_placeholder_resource(text: str) -> bool:
+    """항목이 아니라 빈칸 표시인가. 앞의 글머리 기호(- ■ · ?)를 떼고 판정한다."""
+    core = re.sub(r"^[\s\-■·?*]+", "", text)
+    return re.sub(r"\s+", "", core) in _RESOURCE_PLACEHOLDERS
+
+
+def is_statistic_dump(text: str) -> bool:
+    """읽으라고 쓴 문장이 아니라 통계표를 그대로 부은 항목인가.
+
+    실측 사례 (음촌):
+      "토양(흙토람 토양통계자료 영죽리 기준) 논 보통답 : 17 사질답 : 57 …"
+      "암석 자갈이 없음 : 847 자갈이 있음 : 272 둥근바위가 있음 : 11 …"
+
+    귀농할 마을을 고르는 사람에게 '사질답 57'은 정보가 아니다. 그렇다고
+    지우지는 않는다 — **접어 두고 펼치면 원문 그대로** 나오게 한다.
+
+    🔴 첫 판은 "150자 이상 + 숫자 비율 12%"였는데 두 번째 사례(암석, 66자)가
+    길이 문턱을 빠져나갔다. 길이는 통계의 특징이 아니다 — **"라벨 : 숫자"가
+    몇 번 반복되는가**가 특징이다. 농산물 목록("■ 농산물 : 감, 오이…")은
+    콜론이 있어도 뒤가 숫자가 아니라 걸리지 않는다.
+    """
+    return len(_LABELLED_NUMBER.findall(text)) >= _STAT_PAIRS
+
+
+def _clean_resources(raw) -> tuple[dict | None, dict | None]:
+    """자원을 (주요, 상세)로 나눈다. 둘 다 출력 가드를 태운다.
 
     원천 API가 준 자유 텍스트가 그대로 화면으로 나가는 자리라, 소개글과 마찬가지로
     가드를 거치지 않으면 여기가 유일한 구멍이 된다.
+
+    나누는 이유: 자원이 있는 17곳은 항목이 마을당 중앙값 11개(최대 15개,
+    우동 2,228자)라 카드가 1,400px를 넘었다. 필드를 늘린 결과가 덤프가 되면
+    "신중하게 고른 화면"이라는 인상을 잃는다.
     """
     if not isinstance(raw, dict):
-        return None
-    out = {
-        group: [t for t in (guards.inspect_output(str(x)) for x in items) if t]
-        for group, items in raw.items() if isinstance(items, list)
-    }
-    out = {g: v for g, v in out.items() if v}
-    return out or None
+        return None, None
+    main: dict[str, list[str]] = {}
+    detail: dict[str, list[str]] = {}
+    shown = 0
+    for group, items in raw.items():
+        if not isinstance(items, list):
+            continue
+        for x in items:
+            text = guards.inspect_output(str(x))
+            if not text or is_placeholder_resource(text):
+                continue
+            # 통계는 무조건 접고, 정상 항목도 상한을 넘으면 접는다.
+            # 접힌 쪽도 그대로 남으므로 잃는 정보는 없다.
+            if is_statistic_dump(text) or shown >= VISIBLE_RESOURCES:
+                detail.setdefault(group, []).append(text)
+            else:
+                main.setdefault(group, []).append(text)
+                shown += 1
+    return (main or None), (detail or None)
 
 
 # 지구는 뒤로 가지 않는다 — 중복 레코드 중 더 진행된 쪽이 최신 상태다
@@ -271,7 +335,8 @@ class Orchestrator:
                 village_note=guards.inspect_output(str(village.get("마을소개") or "")) or None
                              if village else None,
                 village_note_truncated=bool(village.get("마을소개_잘림")) if village else False,
-                village_resources=_clean_resources(village.get("자원목록")) if village else None,
+                **dict(zip(("village_resources", "village_resources_detail"),
+                           _clean_resources(village.get("자원목록")) if village else (None, None))),
                 village_name=guards.inspect_output(str(village.get("마을명") or "")) or None
                              if village else None,
                 score=score, confidence_grade=grade,

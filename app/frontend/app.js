@@ -391,11 +391,13 @@ function villageBlockHtml(card) {
   // 구분되지 않아, 91곳의 0을 "석면 없음"으로 보이면 근거 없는 안심이 된다.
   if (card.slate_houses) stats.push("슬레이트 주택 " + esc(formatNumber(card.slate_houses, "채")));
 
-  const resources = card.village_resources && typeof card.village_resources === "object"
-    ? Object.entries(card.village_resources).filter(([, list]) => Array.isArray(list) && list.length)
-    : [];
+  const groupsOf = (obj) => (obj && typeof obj === "object"
+    ? Object.entries(obj).filter(([, list]) => Array.isArray(list) && list.length)
+    : []);
+  const resources = groupsOf(card.village_resources);
+  const resourceDetail = groupsOf(card.village_resources_detail);
 
-  if (!stats.length && !card.village_note && !resources.length) return "";
+  if (!stats.length && !card.village_note && !resources.length && !resourceDetail.length) return "";
 
   const head = stats.length
     ? '<p class="village-summary">' +
@@ -424,19 +426,65 @@ function villageBlockHtml(card) {
   // 자원은 127곳 중 17곳만 등록돼 있다. 그래서 있는 곳에만 붙이고 점수에는
   // 넣지 않는다 — 13%만 판정할 수 있는 조건을 점수화하면 나머지 110곳이
   // "자원이 없는 마을"로 깎인다. 미등록과 부재는 다르다.
-  const res = resources.length
+  const groupHtml = (pairs) => pairs.map(([group, list]) =>
+    '<div class="res-group">' +
+      '<span class="res-label">' + esc(group) + "</span>" +
+      "<ul>" + list.map((t) => "<li>" + esc(t) + "</li>").join("") + "</ul>" +
+    "</div>").join("");
+
+  // 통계표를 그대로 부은 항목(토양·암석 수치)은 접는다. 지우지는 않는다 —
+  // 원문을 감추면 "근거 있는 사실 확인"이 아니게 된다. 접기 전 이 마을들은
+  // 카드가 1,400px를 넘었다(앙성 실측).
+  const detailCount = resourceDetail.reduce((n, [, list]) => n + list.length, 0);
+  const res = resources.length || detailCount
     ? '<div class="village-res">' +
-        resources.map(([group, list]) =>
-          '<div class="res-group">' +
-            '<span class="res-label">' + esc(group) + "</span>" +
-            "<ul>" + list.map((t) => "<li>" + esc(t) + "</li>").join("") + "</ul>" +
-          "</div>").join("") +
+        groupHtml(resources) +
+        // 🔴 라벨을 "통계 원문 N건"이라고 쓰면 안 된다 — 접힌 것에는 통계뿐
+        // 아니라 개수 상한을 넘긴 일반 항목도 섞여 있다. 실제로 첫 판이
+        // 그렇게 적어 놓고 8건 중 6건이 일반 항목이었다. 중립적으로 센다.
+        (detailCount
+          ? '<details class="res-detail"><summary>자원 원문 ' + detailCount +
+              "건 더 보기</summary>" + groupHtml(resourceDetail) + "</details>"
+          : "") +
         '<p class="res-source">한국농어촌공사 마을 자원정보 원문 · resourceVill' +
-        " <span>등록된 마을에만 표시하며 적합도 점수에는 넣지 않습니다.</span></p>" +
+        " <span>등록된 마을에만 표시하며 적합도 점수에는 넣지 않습니다." +
+        (detailCount ? " 토양·암석 통계와 그 밖의 항목은 접어 두었고, 펼치면 원문 그대로 나옵니다." : "") +
+        "</span></p>" +
       "</div>"
     : "";
 
   return head + note + res;
+}
+
+/** 카드에서 바로 갈 수 있는 다음 행동.
+ *
+ * 🔴 이게 없어서 카드가 막다른 길이었다. 지도·데이터셋 링크가 전부
+ * `근거 · 위치 확인` 모달 안에만 있어서, 카드만 읽은 사람은 읽고 끝났다.
+ * 사용자가 "정보가 적다"고 느끼는 지점은 필드 수가 아니라 여기라고 본다.
+ *
+ * 시군구청은 **검색 링크**로 건다 — 지자체마다 도메인이 달라 정확한 주소를
+ * 알 수 없다. 모르는 URL을 지어내느니 검색을 여는 편이 정직하다.
+ */
+function cardActionsHtml(card, index) {
+  const address = [card.sido, card.sigungu, card.eupmyeon].filter(Boolean).join(" ");
+  const mapQuery = encodeURIComponent([address, card.gu_name].filter(Boolean).join(" "));
+  const office = card.sigungu ? card.sigungu.replace(/[군시구]$/, (m) => m) + "청" : "";
+  const officeQuery = encodeURIComponent(office + " 전원마을 분양 문의");
+
+  return (
+    '<div class="card-actions">' +
+      '<button class="evidence-button" type="button" data-gu="' + esc(card.gu_name) +
+        '" data-index="' + index + '">' + icon("fileSearch") + "근거 확인</button>" +
+      '<a class="action-link" href="https://map.kakao.com/link/search/' + mapQuery +
+        '" target="_blank" rel="noopener noreferrer">지도에서 보기</a>' +
+      (office
+        ? '<a class="action-link" href="https://www.google.com/search?q=' + officeQuery +
+          '" target="_blank" rel="noopener noreferrer">' + esc(office) + " 문의처 찾기</a>"
+        : "") +
+      '<p class="action-note">분양가·남은 자리·신청 일정은 공공데이터에 없습니다 — ' +
+        "실제 조건은 " + esc(office || "관할 시군구청") + "과 공식 분양처에서 확인하세요.</p>" +
+    "</div>"
+  );
 }
 
 function cardHtml(card, drought, index, terms) {
@@ -444,9 +492,12 @@ function cardHtml(card, drought, index, terms) {
   const badge = gradeText(grade);
   const score = Math.round(clamp(Number(card.score) || 0, 0, 1) * 100);
   const titleId = "result-title-" + index;
-  const reasons = Array.isArray(card.reasons)
-    ? card.reasons.map((reason) => "<li>" + esc(reason) + "</li>").join("")
-    : "";
+  // 카드 위쪽 배지에 이미 "분양중"이 있는데 선정 이유에 "진행단계=분양중"이
+  // 또 나왔다. 같은 사실을 두 번 적으면 카드가 길어지기만 하고 읽히지 않는다.
+  // 응답(reasons)은 손대지 않고 화면에서만 겹치는 항목을 뺀다.
+  const shown = (Array.isArray(card.reasons) ? card.reasons : [])
+    .filter((r) => !(card.sale_stage && r === "진행단계=" + card.sale_stage));
+  const reasons = shown.map((reason) => "<li>" + esc(reason) + "</li>").join("");
 
   return (
     '<article class="result-card" aria-labelledby="' + titleId + '">' +
@@ -478,9 +529,7 @@ function cardHtml(card, drought, index, terms) {
       "</div>" +
       scoreFormula(terms) +
       droughtHtml(drought && drought.sigungu === card.sigungu ? drought : null) +
-      '<div class="card-actions">' +
-        '<button class="evidence-button" type="button" data-gu="' + esc(card.gu_name) + '" data-index="' + index + '">' + icon("fileSearch") + "근거 · 위치 확인</button>" +
-      "</div>" +
+      cardActionsHtml(card, index) +
     "</article>"
   );
 }

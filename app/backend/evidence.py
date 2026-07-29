@@ -43,6 +43,11 @@ _BINDINGS: list[tuple[str, str, str, Callable[[VillageCard], str]]] = [
     ("village_resources", config.API_VILLAGE,
      "resourceVill · villEconomy*Resource* / villNature*Resource*",
      lambda c: "마을 자원 원문 " + str(sum(len(v) for v in c.village_resources.values())) + "건"),
+    # 접어 둔 통계 항목도 근거에 남긴다 — 화면에서 접었다고 출처가 없어지지 않는다.
+    ("village_resources_detail", config.API_VILLAGE,
+     "resourceVill · 통계성 항목 (접어서 표시)",
+     lambda c: "마을 자원 통계 원문 "
+               + str(sum(len(v) for v in c.village_resources_detail.values())) + "건"),
 ]
 
 
