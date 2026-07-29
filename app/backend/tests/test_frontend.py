@@ -295,6 +295,57 @@ def test_unknown_metric_is_visually_demoted():
     assert size(demoted) < size(base), "확인 불가가 실제 수치보다 작아야 한다"
 
 
+# --- 지역 드롭다운 (2026-07-29) ---
+def test_region_dropdowns_exist_and_start_hidden():
+    """목록이 비었는데 드롭다운만 떠 있으면 고를 게 없는 빈 UI가 된다."""
+    html = client.get("/").text
+    for marker in ('id="region-filter"', 'id="sel-sido"', 'id="sel-sigungu"',
+                   'id="sel-stage"', 'id="region-reset"'):
+        assert marker in html, marker
+    block = html.split('id="region-filter"')[1][:40]
+    assert "hidden" in block, "목록 로드 전에는 숨겨야 한다"
+    assert 'id="sel-sigungu" class="region-select" aria-label="시군구 선택" disabled' in html, \
+        "시도를 고르기 전 시군구는 비활성이어야 한다"
+
+
+def test_dropdown_uses_structured_path_not_sentence_parsing():
+    """직접 고른 값을 문장으로 되돌려 파싱하면 추측이 한 단계 끼어든다."""
+    app_js = client.get("/app.js").text
+    assert "function structuredFromSelects" in app_js
+    assert "structured ? { structured } : { query }" in app_js, \
+        "선택이 있으면 query 대신 structured로 보내야 파서를 건너뛴다"
+    assert "apiKey && !structured" in app_js, "구조화 경로에 LLM 키를 보낼 이유가 없다"
+
+
+def test_dropdown_and_free_text_are_mutually_exclusive():
+    """둘 다 값이 있으면 무엇이 조건인지 화면만 봐서는 알 수 없다."""
+    app_js = client.get("/app.js").text
+    assert "function clearRegionSelects" in app_js
+    assert "if (hasRegionSelection()) clearRegionSelects();" in app_js, \
+        "타이핑하면 드롭다운을 비워야 한다"
+    change = app_js.split('el.selSido.addEventListener("change"')[1].split("});")[0]
+    assert 'el.query.value = ""' in change, "드롭다운을 고르면 입력창을 비워야 한다"
+
+
+def test_region_load_failure_is_silent():
+    """지역 목록은 보조 수단 — 실패해도 자연어 검색은 그대로 살아야 한다."""
+    app_js = client.get("/app.js").text
+    fn = app_js.split("async function loadRegions")[1].split("\nasync function ")[0]
+    assert "catch" in fn
+    assert "el.regionFilter.hidden = false" in fn
+    # 성공 경로에서만 노출 — catch 블록이 UI를 켜면 빈 드롭다운이 남는다
+    assert "hidden = false" not in fn.split("catch")[1]
+
+
+def test_structured_summary_does_not_claim_interpretation():
+    """고른 값에 '해석 신뢰도'를 붙이면 거짓이다 — 해석한 적이 없다."""
+    app_js = client.get("/app.js").text
+    fn = app_js.split("function parsedSummary")[1].split("\nfunction ")[0]
+    assert "isStructured" in fn
+    assert "문장 해석 없음" in fn
+    assert "parsedSummary(data.query_parsed, Boolean(structured))" in app_js
+
+
 def test_query_input_has_length_cap():
     """서버 절단 전에 브라우저에서 먼저 막는다 (BYOK 비용 보호)."""
     import config

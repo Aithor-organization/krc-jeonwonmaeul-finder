@@ -124,6 +124,53 @@ class KrcDataClient:
             rows = [r for r in rows if r.get("진행단계") in stages]
         return rows
 
+    def region_tree(self) -> dict:
+        """드롭다운용 시도 → 시군구 목록.
+
+        외부 API를 추가로 부르지 않는다 — 분양정보 167건 각 레코드가 이미
+        시도명·시군구를 들고 있으므로 로드된 데이터에서 그대로 집계한다.
+
+        건수를 함께 주는 이유: 목록에 없는 지역은 검색해도 0건이고, 있더라도
+        1건짜리 지역을 고르면 결과가 빈약하다. 고르기 전에 몇 건인지 보이면
+        헛검색을 미리 피한다.
+        """
+        self.ensure_loaded()
+        rows = self._sale or []
+        sido_count: dict[str, int] = {}
+        sigungu_count: dict[str, dict[str, int]] = {}
+        stage_count: dict[str, int] = {}
+
+        for row in rows:
+            sido = str(row.get("시도명") or "").strip()
+            if sido:
+                sido_count[sido] = sido_count.get(sido, 0) + 1
+                sigungu = str(row.get("시군구") or "").strip()
+                if sigungu:
+                    bucket = sigungu_count.setdefault(sido, {})
+                    bucket[sigungu] = bucket.get(sigungu, 0) + 1
+            stage = str(row.get("진행단계") or "").strip()
+            if stage:
+                stage_count[stage] = stage_count.get(stage, 0) + 1
+
+        return {
+            "총건수": len(rows),
+            "기준": "live" if self.live_active else "sample",
+            "시도": [
+                {
+                    "이름": sido,
+                    "건수": count,
+                    "시군구": [
+                        {"이름": name, "건수": n}
+                        for name, n in sorted(sigungu_count.get(sido, {}).items())
+                    ],
+                }
+                for sido, count in sorted(sido_count.items())
+            ],
+            "진행단계": [
+                {"이름": name, "건수": n} for name, n in sorted(stage_count.items())
+            ],
+        }
+
     def available_sigungu(self) -> list[str]:
         """현재 데이터에 실제로 존재하는 시군구 목록 (질의 매칭용)."""
         self.ensure_loaded()

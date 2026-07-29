@@ -84,6 +84,24 @@
               <span id="ai-status-text">AI 파싱 꺼짐 — 규칙 파서로 검색합니다</span>
               <a href="/settings.html">설정에서 키 넣기</a>
             </p>
+
+            <!-- 목록은 /api/regions가 채운다. 새 공공데이터 API를 부르지 않고
+                 검색에 쓰는 분양정보에서 뽑으므로, 여기 보이는 지역은 항상
+                 실제로 결과가 나오는 지역이다. 로드 실패 시 숨긴 채로 두고
+                 자연어 검색만 남긴다(보조 수단이라 없어도 서비스는 동작). -->
+            <div class="region-filter" id="region-filter" hidden>
+              <span class="region-filter-label">또는 지역으로 고르기</span>
+              <select id="sel-sido" class="region-select" aria-label="시도 선택">
+                <option value="">시도 전체</option>
+              </select>
+              <select id="sel-sigungu" class="region-select" aria-label="시군구 선택" disabled>
+                <option value="">시군구 전체</option>
+              </select>
+              <select id="sel-stage" class="region-select" aria-label="진행단계 선택">
+                <option value="">진행단계 전체</option>
+              </select>
+              <button type="button" id="region-reset" class="region-reset" hidden>선택 해제</button>
+            </div>
           </form>
 
           <div id="query-help" class="examples" aria-label="검색 예시">

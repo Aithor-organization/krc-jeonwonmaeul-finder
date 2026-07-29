@@ -439,6 +439,80 @@ body.results-mode .scroll-cue {
   font-weight: 700;
 }
 
+/* --- 지역 드롭다운 (자연어 입력의 대안 경로) ---------------------------------
+   히어로 위(어두운 배경)에 놓이므로 select 자체를 밝게 칠한다. OS 기본 select는
+   배경만 바꾸면 화살표가 안 보이는 환경이 있어 배경 이미지로 직접 그린다. */
+.region-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.region-filter-label {
+  margin-right: 2px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.region-select {
+  min-width: 132px;
+  max-width: 200px;
+  height: 34px;
+  padding: 0 30px 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 999px;
+  color: var(--white);
+  background-color: rgba(10, 30, 20, 0.62);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 13px 13px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  transition: border-color 140ms ease-out, background-color 140ms ease-out;
+}
+
+.region-select:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.region-select:disabled {
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* 펼친 목록은 OS가 그리므로 어두운 글자색을 되돌려야 읽힌다 */
+.region-select option {
+  color: var(--ink-950);
+  background: var(--white);
+}
+
+.region-reset {
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.82);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.region-reset:hover {
+  color: var(--white);
+}
+
 .examples {
   display: flex;
   flex-wrap: wrap;

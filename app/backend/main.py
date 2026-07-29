@@ -36,6 +36,17 @@ def health() -> dict:
     }
 
 
+@app.get("/api/regions")
+def regions() -> dict:
+    """지역 드롭다운 목록.
+
+    새 공공데이터 API를 부르지 않는다 — 검색에 쓰는 분양정보(전국 167건)에
+    이미 시도·시군구가 들어 있어 그 데이터에서 집계한다. 따라서 이 목록은
+    항상 "실제로 검색되는 지역"과 일치한다.
+    """
+    return orch.client.region_tree()
+
+
 @app.post("/api/search", response_model=SearchResponse)
 def search(req: SearchRequest) -> SearchResponse:
     # openai_api_key는 이 호출의 파싱에만 쓰이고 저장·로깅되지 않는다 (BYOK)

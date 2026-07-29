@@ -25,7 +25,16 @@ const el = {
   modalClose: $("#modal-close"),
   aiStatus: $("#ai-status"),
   aiStatusText: $("#ai-status-text"),
+  regionFilter: $("#region-filter"),
+  selSido: $("#sel-sido"),
+  selSigungu: $("#sel-sigungu"),
+  selStage: $("#sel-stage"),
+  regionReset: $("#region-reset"),
 };
+
+// /api/regions 응답. 로드 전이거나 실패하면 null이고, 그 경우 지역 선택 UI는
+// 숨긴 채로 둔다 — 자연어 검색만으로도 서비스는 완전히 동작한다.
+let regionData = null;
 
 // 키 입력·보관은 설정 화면(/settings.html)이 담당하고, 여기서는 읽어 쓰기만 한다.
 // 저장 규칙은 key-store.js 단일 출처 — 두 화면이 각자 들고 있으면 조용히 어긋난다.
@@ -99,7 +108,7 @@ function formatEvidenceValue(item) {
   return formatNumber(item.value, units[item.field] || "");
 }
 
-function parsedSummary(parsed) {
+function parsedSummary(parsed, isStructured) {
   if (!parsed) return "";
   const parts = [];
   if (parsed.region && parsed.region.sido) parts.push(parsed.region.sido);
@@ -107,6 +116,10 @@ function parsedSummary(parsed) {
   if (parsed.budget_max_krw) parts.push(formatBudget(parsed.budget_max_krw));
   if (Array.isArray(parsed.sale_stage) && parsed.sale_stage.length) parts.push(parsed.sale_stage.join(" / "));
   if (Array.isArray(parsed.preferences) && parsed.preferences.length) parts.push(parsed.preferences.join(", "));
+  // 목록에서 직접 고른 조건에 "해석 신뢰도"를 붙이면 거짓이다 — 해석한 적이 없다.
+  if (isStructured) {
+    return "선택한 조건 · " + (parts.join(" · ") || "전체") + " · 문장 해석 없음";
+  }
   const confidence = Math.round(clamp(Number(parsed.confidence) || 0, 0, 1) * 100);
   return "해석한 조건 · " + (parts.join(" · ") || "구체적인 조건을 찾지 못했습니다") + " · 해석 신뢰도 " + confidence + "%";
 }
@@ -417,9 +430,86 @@ function openEvidence(guName) {
   el.modal.showModal();
 }
 
+// --- 지역 드롭다운 (자연어 입력의 대안 경로) ---
+
+/** 선택된 값들을 백엔드 ParsedQuery 형태로 만든다.
+ *
+ * 문장으로 바꿔 파서에 다시 태우지 않는 이유: 사용자가 목록에서 직접 고른
+ * 값은 이미 확정된 조건이다. 그걸 다시 문장으로 만들어 해석시키면 추측이
+ * 한 단계 끼어든다 — 실제로 "예산"을 시군구와 예산(금액)으로 동시에 읽어
+ * 결과가 0건이 된 적이 있다. 서버의 structured 경로가 파싱을 건너뛴다.
+ */
+function structuredFromSelects() {
+  const sido = el.selSido.value;
+  const sigungu = el.selSigungu.value;
+  const stage = el.selStage.value;
+  if (!sido && !sigungu && !stage) return null;
+  return {
+    region: { sido: sido || null, sigungu: sigungu || null },
+    budget_max_krw: null,
+    sale_stage: stage ? [stage] : [],
+    household_min: null,
+    preferences: [],
+    confidence: 1,                    // 해석한 값이 아니라 사용자가 고른 값
+    raw: [sido, sigungu, stage].filter(Boolean).join(" "),
+  };
+}
+
+function hasRegionSelection() {
+  return Boolean(el.selSido.value || el.selSigungu.value || el.selStage.value);
+}
+
+function option(value, label) {
+  const o = document.createElement("option");
+  o.value = value;
+  o.textContent = label;
+  return o;
+}
+
+function fillSigungu(sidoName) {
+  const sido = (regionData.시도 || []).find((s) => s.이름 === sidoName);
+  const list = sido ? sido.시군구 || [] : [];
+  el.selSigungu.replaceChildren(option("", "시군구 전체"));
+  list.forEach((g) => el.selSigungu.appendChild(option(g.이름, g.이름 + " (" + g.건수 + ")")));
+  el.selSigungu.disabled = list.length === 0;
+}
+
+function syncRegionReset() {
+  el.regionReset.hidden = !hasRegionSelection();
+}
+
+function clearRegionSelects() {
+  el.selSido.value = "";
+  el.selStage.value = "";
+  el.selSigungu.replaceChildren(option("", "시군구 전체"));
+  el.selSigungu.disabled = true;
+  syncRegionReset();
+}
+
+async function loadRegions() {
+  try {
+    const response = await fetchWithTimeout("/api/regions", {}, 25000);
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!Array.isArray(data.시도) || !data.시도.length) return;
+
+    regionData = data;
+    el.selSido.replaceChildren(option("", "시도 전체"));
+    data.시도.forEach((s) => el.selSido.appendChild(option(s.이름, s.이름 + " (" + s.건수 + ")")));
+    el.selStage.replaceChildren(option("", "진행단계 전체"));
+    (data.진행단계 || []).forEach((s) =>
+      el.selStage.appendChild(option(s.이름, s.이름 + " (" + s.건수 + ")")));
+    el.regionFilter.hidden = false;
+  } catch (error) {
+    // 지역 선택은 보조 수단 — 실패하면 조용히 숨긴 채로 두고 자연어 검색을 남긴다
+  }
+}
+
 async function runSearch() {
+  // 드롭다운에 선택이 있으면 그게 조건이다 (자연어와 상호 배타 — 아래 이벤트에서 보장)
+  const structured = structuredFromSelects();
   const query = el.query.value.trim();
-  if (!query) {
+  if (!structured && !query) {
     el.queryError.hidden = false;
     el.query.setAttribute("aria-invalid", "true");
     el.query.focus();
@@ -442,8 +532,9 @@ async function runSearch() {
 
   try {
     const apiKey = readStoredKey();
-    const payload = { query };
-    if (apiKey) payload.openai_api_key = apiKey;   // 없으면 필드 자체를 보내지 않는다
+    // structured면 서버가 문장 파싱을 건너뛴다 — LLM 키도 쓸 일이 없으므로 보내지 않는다
+    const payload = structured ? { structured } : { query };
+    if (apiKey && !structured) payload.openai_api_key = apiKey;
 
     const response = await fetchWithTimeout("/api/search", {
       method: "POST",
@@ -457,7 +548,7 @@ async function runSearch() {
     lastEvidence = Array.isArray(data.evidence) ? data.evidence : [];
     lastDisclaimer = data.disclaimer || lastDisclaimer;
     el.disclaimer.textContent = lastDisclaimer;
-    el.parsedInfo.textContent = parsedSummary(data.query_parsed);
+    el.parsedInfo.textContent = parsedSummary(data.query_parsed, Boolean(structured));
     renderWarnings(data.warnings);
     renderNotes(data.notes);
     renderTrace(data.trace);
@@ -504,7 +595,36 @@ el.query.addEventListener("input", () => {
   if (el.query.value.trim()) {
     el.queryError.hidden = true;
     el.query.removeAttribute("aria-invalid");
+    // 둘 다 값이 있으면 무엇이 조건인지 화면만 봐서는 알 수 없다 —
+    // 마지막에 손댄 쪽을 조건으로 삼고 다른 쪽은 비운다.
+    if (hasRegionSelection()) clearRegionSelects();
   }
+});
+
+el.selSido.addEventListener("change", () => {
+  fillSigungu(el.selSido.value);
+  el.query.value = "";
+  el.queryError.hidden = true;
+  syncRegionReset();
+  runSearch();
+});
+
+el.selSigungu.addEventListener("change", () => {
+  el.query.value = "";
+  syncRegionReset();
+  runSearch();
+});
+
+el.selStage.addEventListener("change", () => {
+  el.query.value = "";
+  el.queryError.hidden = true;
+  syncRegionReset();
+  runSearch();
+});
+
+el.regionReset.addEventListener("click", () => {
+  clearRegionSelects();
+  el.query.focus();
 });
 
 document.querySelectorAll(".query-chip").forEach((chip) => {
@@ -559,3 +679,4 @@ el.modal.addEventListener("click", (event) => {
 });
 
 loadHealth();
+loadRegions();
