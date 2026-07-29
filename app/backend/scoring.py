@@ -63,6 +63,13 @@ def _terms(parsed, sale: dict, village: dict | None) -> tuple[list[dict], list[s
         avail = (100.0 - rate) / 100.0
         reasons.append(f"분양율 {rate:g}%")
         avail_basis = f"분양율 {rate:g}% → (100−{rate:g})/100 = {avail:g}"
+    elif stage == "분양완료":
+        # 분양율 수치는 없지만 진행단계가 답을 준다 — 다 팔린 지구에 "자리 절반"을
+        # 주고 있었다(중립 0.5). 분양완료 23건 중 수치가 기록된 6건은 예외 없이
+        # 100%였으므로, 미입력 17건도 남은 자리가 없다고 보는 것이 데이터와 맞다.
+        # 수치를 지어내지 않으면서(분양율은 여전히 '확인 불가') 아는 것은 쓴다.
+        avail = 0.0
+        avail_basis = "분양율 기록 없음. 다만 진행단계가 분양완료 → 남은 자리 없음 → 0"
     else:
         avail = 0.5
         avail_basis = f"분양율 미상 → 기본값 {avail}"

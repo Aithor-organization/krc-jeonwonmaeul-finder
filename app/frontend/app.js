@@ -244,10 +244,23 @@ const UNKNOWN_REASON = {
   계획세대수: "원천 미입력",
 };
 
-function metricHtml(key, value, suffix) {
+/** 분양율 수치가 없어도 진행단계가 답을 주는 경우가 있다.
+ *
+ * "분양율을 아예 모르는 거냐"는 질문에 대한 답 — 수치는 모르지만 분양완료면
+ * 남은 자리가 없다는 건 안다(수치가 기록된 완료 지구 6건 전부 100%).
+ * 그 판단은 점수에도 반영되므로(가용성 0), 카드에도 같은 말을 적는다.
+ */
+function unknownRateReason(stage) {
+  if (stage === "분양완료") return "수치는 미입력이지만 분양완료 — 남은 자리 없음";
+  if (stage === "분양예정") return "분양 시작 전이라 기록 없음";
+  return UNKNOWN_REASON.분양율;
+}
+
+function metricHtml(key, value, suffix, reasonOverride) {
   const unknown = value == null;
-  const reason = unknown && UNKNOWN_REASON[key]
-    ? '<div class="metric-reason">' + esc(UNKNOWN_REASON[key]) + "</div>"
+  const text = reasonOverride || UNKNOWN_REASON[key];
+  const reason = unknown && text
+    ? '<div class="metric-reason">' + esc(text) + "</div>"
     : "";
   return (
     '<div class="metric' + (unknown ? " is-unknown" : "") + '">' +
@@ -266,12 +279,14 @@ function metricHtml(key, value, suffix) {
  */
 function metricsHtml(card) {
   const metrics = [
-    { key: "분양율", value: card.sale_rate, suffix: "%" },
+    { key: "분양율", value: card.sale_rate, suffix: "%", reason: unknownRateReason(card.sale_stage) },
     { key: "계획세대수", value: card.planned_households, suffix: "세대" },
   ];
   const known = metrics.filter((m) => m.value != null);
   const unknown = metrics.filter((m) => m.value == null);
-  return known.concat(unknown).map((m) => metricHtml(m.key, m.value, m.suffix)).join("");
+  return known.concat(unknown)
+    .map((m) => metricHtml(m.key, m.value, m.suffix, m.reason))
+    .join("");
 }
 
 /** 점수 옆 산식 요약 — "왜 75%인가"에 카드에서 바로 답한다.
