@@ -292,6 +292,23 @@
   }
 }
 
+/* 세로가 짧은 노트북(1280×640 등): 히어로를 접어도 46px 제목과 여백이 카드를
+   화면 밖으로 민다. 결과 화면은 읽는 화면이 아니라 쓰는 화면이므로 머리를 줄인다.
+   실측 1280×640 (같은 페이지 A/B): 첫 카드 549px → 508px, 노출 17% → 25%. */
+@media (max-height: 760px) {
+  body.results-mode .results-section {
+    padding-top: 24px;
+  }
+
+  body.results-mode .results-heading h2 {
+    font-size: 30px;
+  }
+
+  body.results-mode .results-heading {
+    gap: 16px;
+  }
+}
+
 @media (max-height: 680px) {
   .hero-inner {
     padding-top: 84px;
