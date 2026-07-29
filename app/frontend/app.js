@@ -60,6 +60,7 @@ function syncAiStatus() {
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const numberFormatter = new Intl.NumberFormat("ko-KR");
 let lastEvidence = [];
+let lastCards = [];   // 모달이 주소·지구명을 쓰려면 카드 원본이 필요하다
 let lastDisclaimer = el.disclaimer.textContent;
 let searchSequence = 0;
 
@@ -341,7 +342,7 @@ function cardHtml(card, drought, index, terms) {
       scoreFormula(terms) +
       droughtHtml(drought && drought.sigungu === card.sigungu ? drought : null) +
       '<div class="card-actions">' +
-        '<button class="evidence-button" type="button" data-gu="' + esc(card.gu_name) + '">' + icon("fileSearch") + "수치 근거 확인</button>" +
+        '<button class="evidence-button" type="button" data-gu="' + esc(card.gu_name) + '" data-index="' + index + '">' + icon("fileSearch") + "근거 · 위치 확인</button>" +
       "</div>" +
     "</article>"
   );
@@ -547,7 +548,48 @@ function renderError(error) {
   );
 }
 
-function openEvidence(guName) {
+/** 원본 데이터셋 — data.go.kr 공개 페이지 (링크 유효성 실측 확인).
+ *  evidence의 api 필드값(숫자 ID)을 그대로 키로 쓴다. */
+const DATASET_PAGE = {
+  15104395: { name: "전원마을 분양정보", url: "https://www.data.go.kr/data/15104395/openapi.do" },
+  15104291: { name: "농촌마을현황", url: "https://www.data.go.kr/data/15104291/openapi.do" },
+  15117185: { name: "논가뭄지도", url: "https://www.data.go.kr/data/15117185/fileData.do" },
+};
+
+/** "이 지구를 더 알아보려면" 블록.
+ *
+ * 공공데이터가 주는 항목은 카드에 이미 다 나와 있어 모달에 더 보여줄 수치가
+ * 없다. 없는 상세를 지어내는 대신 **어디서 확인하는지**를 준다 — 위치는 지도,
+ * 수치의 출처는 원본 데이터셋, 분양가·면적·일정은 공식 분양처.
+ */
+function nextStepsHtml(card, apis) {
+  if (!card) return "";
+  const address = [card.sido, card.sigungu, card.eupmyeon].filter(Boolean).join(" ");
+  const mapQuery = encodeURIComponent([address, card.gu_name].filter(Boolean).join(" "));
+  const datasets = [...new Set(apis)]
+    .map((id) => DATASET_PAGE[id])
+    .filter(Boolean)
+    .map((d) => '<li><a href="' + d.url + '" target="_blank" rel="noopener noreferrer">' +
+                esc(d.name) + " 원본 데이터셋</a></li>")
+    .join("");
+
+  return (
+    '<div class="modal-next">' +
+      "<h3>이 지구를 더 알아보려면</h3>" +
+      "<ul>" +
+        '<li><a href="https://map.kakao.com/link/search/' + mapQuery +
+          '" target="_blank" rel="noopener noreferrer">지도에서 위치 보기</a>' +
+          '<span class="modal-next-note">' + esc(address || "주소 정보 없음") + "</span></li>" +
+        datasets +
+      "</ul>" +
+      '<p class="modal-next-limit">공공데이터로 확인할 수 있는 항목은 위 표가 전부입니다 — ' +
+        "<strong>분양가·대지면적·신청 일정·연락처는 제공되지 않습니다</strong>. " +
+        "실제 분양 조건은 관할 시군구청과 공식 분양처에서 확인해 주세요.</p>" +
+    "</div>"
+  );
+}
+
+function openEvidence(guName, card) {
   const prefix = "[" + guName + "]";
   const rows = lastEvidence.filter((item) => item.claim && item.claim.startsWith(prefix));
   const rowHtml = rows.length
@@ -567,6 +609,7 @@ function openEvidence(guName) {
       "<thead><tr><th>확인 내용</th><th>API</th><th>원본 필드</th><th>값</th></tr></thead>" +
       "<tbody>" + rowHtml + "</tbody>" +
     "</table></div>" +
+    nextStepsHtml(card, rows.map((r) => r.api)) +
     '<div class="modal-disclaimer">' + esc(lastDisclaimer) + "</div>"
   );
   el.modal.showModal();
@@ -707,6 +750,7 @@ async function runSearch() {
     if (sequence !== searchSequence) return;
 
     lastEvidence = Array.isArray(data.evidence) ? data.evidence : [];
+    lastCards = Array.isArray(data.top) ? data.top : [];
     lastDisclaimer = data.disclaimer || lastDisclaimer;
     el.disclaimer.textContent = lastDisclaimer;
     el.parsedInfo.textContent = parsedSummary(data.query_parsed, Boolean(structured));
@@ -809,7 +853,8 @@ el.traceOpen.addEventListener("click", () => {
 el.cards.addEventListener("click", (event) => {
   const evidenceButton = event.target.closest(".evidence-button");
   if (evidenceButton) {
-    openEvidence(evidenceButton.dataset.gu || "선택한 마을");
+    openEvidence(evidenceButton.dataset.gu || "선택한 마을",
+                 lastCards[Number(evidenceButton.dataset.index)]);
     return;
   }
 

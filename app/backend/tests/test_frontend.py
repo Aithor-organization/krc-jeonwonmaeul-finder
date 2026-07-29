@@ -295,6 +295,49 @@ def test_unknown_metric_is_visually_demoted():
     assert size(demoted) < size(base), "확인 불가가 실제 수치보다 작아야 한다"
 
 
+# --- 상세 정보로 가는 다음 단계 (2026-07-29) ---
+def test_modal_offers_next_steps_not_just_a_source_table():
+    """모달이 카드에 이미 보이는 값의 출처 표뿐이면 '상세 정보'가 아니다.
+
+    공공데이터에 더 있는 게 없으므로 상세를 지어낼 수 없다 — 대신 어디서
+    확인하는지를 준다(지도 · 원본 데이터셋 · 공식 분양처).
+    """
+    app_js = client.get("/app.js").text
+    css = client.get("/sections.css").text
+    assert "function nextStepsHtml" in app_js
+    assert "nextStepsHtml(card, rows.map((r) => r.api))" in app_js
+    assert "지도에서 위치 보기" in app_js
+    assert ".modal-next" in css
+
+
+def test_modal_links_are_real_and_not_guessed():
+    """추측한 URL을 넣으면 클릭했을 때 404가 뜬다 — 실측 확인한 것만 쓴다."""
+    app_js = client.get("/app.js").text
+    assert "https://map.kakao.com/link/search/" in app_js, "카카오맵 공식 검색 스킴"
+    for dataset in ("15104395", "15104291"):
+        assert f"https://www.data.go.kr/data/{dataset}/" in app_js, dataset
+    # 새 창은 반드시 noopener — 원본 탭 탈취 방지
+    assert 'rel="noopener noreferrer"' in app_js
+    assert app_js.count('target="_blank"') == app_js.count('rel="noopener noreferrer"')
+
+
+def test_modal_states_the_data_ceiling():
+    """'더 있는데 안 보여준다'가 아니라 '여기까지가 전부'임을 밝힌다."""
+    app_js = client.get("/app.js").text
+    fn = app_js.split("function nextStepsHtml")[1].split("\nfunction ")[0]
+    assert "위 표가 전부입니다" in fn
+    assert "분양가·대지면적·신청 일정·연락처는 제공되지 않습니다" in fn
+
+
+def test_evidence_button_label_matches_what_opens():
+    """'수치 근거 확인'은 위치·다음 단계까지 담긴 모달을 설명하지 못한다."""
+    app_js = client.get("/app.js").text
+    assert "근거 · 위치 확인" in app_js
+    # 카드 지구명은 중복될 수 있어 이름 대신 인덱스로 카드를 찾는다
+    assert 'data-index="\' + index + \'"' in app_js
+    assert "lastCards[Number(evidenceButton.dataset.index)]" in app_js
+
+
 # --- 없는 데이터의 고지 (2026-07-29) ---
 def test_missing_price_is_disclosed_before_searching():
     """예산 입력 후 경고로 알리면 이미 기대가 만들어진 뒤라 늦다."""
