@@ -236,11 +236,14 @@ body.results-mode .results-section {
   transform: translateY(-2px);
 }
 
+/* 진행단계 배지에 원천 라벨('건축완료후 입주단계')이 붙으면서 폭이 늘어,
+   가로 배치로는 지구명이 "달두루 / 전원마을"처럼 깨졌다. 배지를 제목 위
+   한 줄로 올려 제목이 온전한 폭을 갖게 한다. */
 .card-top {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column-reverse;
+  align-items: stretch;
+  gap: 10px;
 }
 
 .rank {
@@ -270,7 +273,7 @@ body.results-mode .results-section {
   display: flex;
   flex: 0 0 auto;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 6px;
 }
 
@@ -283,8 +286,19 @@ body.results-mode .results-section {
 }
 
 .badge.stage {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
   color: var(--forest-800);
   background: var(--forest-100);
+}
+
+/* '분양중'은 우리가 붙인 이름이고 원천은 '주택건축 단계'다 — 우리 라벨만
+   두면 "지금 들어가 살 수 있다"로 읽힌다. 원문을 나란히 둔다. */
+.badge-source {
+  font-size: 9.5px;
+  font-weight: 600;
+  opacity: 0.75;
 }
 
 .badge.grade-a {
@@ -320,12 +334,20 @@ body.results-mode .results-section {
   border-left: 1px solid var(--border);
 }
 
+/* 배지가 둘(이 지구 기준 + 상태)까지 붙어서, wrap이 없으면 '분양율'이
+   "분양/율"로 쪼개진다. 라벨은 절대 쪼개지 않고 배지를 아래로 내린다. */
 .metric .key {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 5px;
+  gap: 4px 5px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.metric .key > :first-child,
+.metric .key {
+  word-break: keep-all;
 }
 
 /* 이 칸이 무엇의 값인지. 분양율은 지구 단위인데 바로 아래 미입력 사유는

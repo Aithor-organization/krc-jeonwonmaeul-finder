@@ -195,6 +195,10 @@ def map_sale_item(raw: dict) -> dict:
         "법정동코드": str(raw.get("legalCode")) if raw.get("legalCode") is not None else None,
         "계획세대수": map_households(raw.get("planHscnt")),
         "진행단계": stage,
+        # 🔴 원문을 버리면 안 된다. '분양중'은 원천에서 **주택건축 단계**,
+        # 즉 집을 짓고 있는 중이다. 우리 라벨만 보면 "지금 들어갈 수 있다"로
+        # 읽히지만 그런 뜻이 아니다 — 원문을 나란히 보여 줘야 오해가 없다.
+        "진행단계_원문": str(raw.get("progrsStep") or "") or None,
         "분양율": rate,
     }
 

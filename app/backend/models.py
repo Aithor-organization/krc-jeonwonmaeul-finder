@@ -33,6 +33,9 @@ class VillageCard(BaseModel):
     sigungu: str
     eupmyeon: str | None = None
     sale_stage: str | None = None
+    # 원천 라벨 그대로. '분양중'은 원천에서 '주택건축 단계'라 **공사 중**이라는
+    # 뜻인데, 우리 라벨만 보면 "지금 들어갈 수 있다"로 읽힌다.
+    sale_stage_source: str | None = None
     sale_rate: float | None = None
     # 원천에 100을 넘는 값이 적혀 있어 표시를 보류한 경우 그 원본 값.
     # '없음'과 '범위를 벗어남'은 화면에서 같은 "확인 불가"로 보이지만

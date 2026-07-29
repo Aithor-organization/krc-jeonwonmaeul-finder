@@ -508,7 +508,17 @@ function cardHtml(card, drought, index, terms) {
           '<p class="location">' + esc([card.sido, card.sigungu, card.eupmyeon].filter(Boolean).join(" ")) + "</p>" +
         "</div>" +
         '<div class="badges">' +
-          '<span class="badge stage">' + esc(card.sale_stage || "단계 확인 불가") + "</span>" +
+          // 🔴 원천 라벨을 함께 적는다. '분양중'은 원천에서 **주택건축 단계**,
+          // 즉 집을 짓고 있는 중이다. 우리 라벨만 두면 "지금 들어가 살 수 있다"로
+          // 읽히는데 그런 뜻이 아니다.
+          '<span class="badge stage"' +
+            (card.sale_stage_source
+              ? ' title="원천 기록: ' + esc(card.sale_stage_source) + '"' : "") + ">" +
+            esc(card.sale_stage || "단계 확인 불가") +
+            (card.sale_stage_source && card.sale_stage_source !== card.sale_stage
+              ? '<span class="badge-source">' + esc(card.sale_stage_source) + "</span>"
+              : "") +
+          "</span>" +
           '<span class="badge ' + gradeClass(grade) + '" title="' + esc(badge.title) + '">' +
             esc(badge.label) + "</span>" +
         "</div>" +

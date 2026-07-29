@@ -315,6 +315,7 @@ class Orchestrator:
                 sigungu=str(sale.get("시군구", "")),
                 eupmyeon=sale.get("읍면동"),
                 sale_stage=sale.get("진행단계"),
+                sale_stage_source=sale.get("진행단계_원문"),
                 sale_rate=_num(sale.get("분양율")),
                 sale_rate_out_of_range=_num(sale.get("분양율_범위초과")),
                 # 샘플 데이터에는 상태 필드가 없을 수 있어 그 자리에서 다시 판정한다

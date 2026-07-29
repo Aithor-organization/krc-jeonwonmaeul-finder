@@ -14,20 +14,24 @@ from models import Evidence, VillageCard
 #
 #   (카드 속성, evidence field, 값이 있는지 판정, claim 문구)
 _BINDINGS: list[tuple[str, str, str, Callable[[VillageCard], str]]] = [
-    ("sale_stage", config.API_SALE, "진행단계",
-     lambda c: f"진행단계 {c.sale_stage}"),
-    ("sale_rate", config.API_SALE, "분양율",
+    # 값에 원문을 함께 적는다 — '분양중'은 우리가 붙인 이름이고 원천은
+    # '주택건축 단계'다. 근거 표에서 그 대응이 보여야 확인이 가능하다.
+    ("sale_stage", config.API_SALE, "progrsStep",
+     lambda c: f"진행단계 {c.sale_stage}"
+               + (f" (원천 {c.sale_stage_source})" if c.sale_stage_source else "")),
+    ("sale_rate", config.API_SALE, "bndeLttotHscntPer",
      lambda c: f"분양율 {c.sale_rate}%"),
     # '추정'은 수치가 아니라 판단이다. 그래서 근거의 field에 **무엇으로부터
     # 추정했는지**를 적는다 — 진행단계다. 판단을 원천 수치처럼 보이게 두면
     # 그게 곧 지어낸 근거가 된다.
-    ("sale_rate_status", config.API_SALE, "진행단계 → 분양율 신뢰 상태",
+    ("sale_rate_status", config.API_SALE, "progrsStep → 분양율 신뢰 상태",
      lambda c: f"분양율 상태 {c.sale_rate_status}"),
-    ("planned_households", config.API_SALE, "계획세대수",
+    ("planned_households", config.API_SALE, "planHscnt",
      lambda c: f"계획세대수 {c.planned_households}"),
-    ("population", config.API_VILLAGE, "인구",
+    # 인구도 단일 필드가 아니다 — 성별×연령대 16칸을 더한 값이다.
+    ("population", config.API_VILLAGE, "vill{Male,Female}Age_*Cnt 16칸 합",
      lambda c: f"인구 {c.population}"),
-    ("vacant_houses", config.API_VILLAGE, "빈집수",
+    ("vacant_houses", config.API_VILLAGE, "villHouseEmpty",
      lambda c: f"빈집수 {c.vacant_houses}"),
     # 이 항만 원천 필드가 아니라 계산값이다. 그래서 field에 산식을 적는다 —
     # "고령화율"이라고만 쓰면 API에 그런 이름의 필드가 있는 것처럼 읽힌다.

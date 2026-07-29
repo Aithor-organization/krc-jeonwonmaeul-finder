@@ -83,7 +83,7 @@ def test_status_is_bound_to_evidence():
                        sale_stage="분양완료", sale_rate_status="추정")
     ev = evidence_mod.build_evidence(card)
     hit = next(e for e in ev if "분양율 상태" in e.claim)
-    assert "진행단계" in hit.field, "무엇으로부터 추정했는지가 field에 있어야 한다"
+    assert "progrsStep" in hit.field, "무엇으로부터 추정했는지가 field에 있어야 한다"
     assert evidence_mod.is_fully_bound(card, ev)
 
 
