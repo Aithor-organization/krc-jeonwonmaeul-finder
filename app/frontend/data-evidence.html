@@ -138,10 +138,12 @@
             <tr><td>지구코드</td><td><code>inbpnCode</code></td><td class="r">100%</td><td>식별자</td></tr>
             <tr><td>진행단계</td><td><code>progrsStep</code></td><td class="r">100%</td><td><span class="pill normal">사용</span></td></tr>
             <tr><td>계획세대수</td><td><code>planHscnt</code></td><td class="r">96%</td><td><span class="pill normal">사용</span></td></tr>
-            <tr><td>분양율</td><td><code>bndeLttotHscntPer</code></td><td class="r">16%</td><td><span class="pill caution">대부분 확인 불가</span></td></tr>
+            <tr><td>분양율 <small>(지구 단위)</small></td><td><code>bndeLttotHscntPer</code></td><td class="r">16%</td><td><span class="pill caution">대부분 확인 불가</span></td></tr>
           </tbody>
         </table>
       </div>
+      <p class="live-status"><strong>분양율은 지구 한 곳의 값입니다 — 지역 전체 값이 아닙니다.</strong> 레코드 하나가 지구 하나라, 같은 시군구 안에서도 값이 갈립니다. 강원 원주시에는 분양율 100%인 &lsquo;지정새싹&rsquo;과 0%인 &lsquo;서곡&rsquo;이 함께 있고, 이렇게 한 시군구 안에서 값이 다른 곳이 <strong>9곳</strong>입니다. 지역 단위 값이라면 같아야 합니다. 계산은 <strong>그 지구의 계획세대수 대비 분양된 비율</strong>입니다. 원천에는 100%를 넘는 값도 1건 있습니다 — 전남 구례 &lsquo;남도&rsquo;가 150%(계획 20세대). 저희는 이 값을 <strong>수치로 표시하지 않고 보류</strong>하되, 카드에는 &ldquo;원천 기록은 150%지만 100%를 넘어 표시를 보류했다&rdquo;고 적습니다 — 값이 <strong>없는 것과 믿지 못하는 것은 다르고</strong>, 같은 &lsquo;확인 불가&rsquo;라도 이유까지 같게 말하면 그건 사실이 아닙니다.</p>
+
       <div class="evidence-header" style="margin-top:56px;">
         <p class="section-kicker">Village fields</p>
         <h2>마을 현황은<br />별도 API에서 가져옵니다.</h2>

@@ -34,6 +34,10 @@ class VillageCard(BaseModel):
     eupmyeon: str | None = None
     sale_stage: str | None = None
     sale_rate: float | None = None
+    # 원천에 100을 넘는 값이 적혀 있어 표시를 보류한 경우 그 원본 값.
+    # '없음'과 '범위를 벗어남'은 화면에서 같은 "확인 불가"로 보이지만
+    # 이유가 다르다 — 이유까지 같게 말하면 그건 사실이 아니다.
+    sale_rate_out_of_range: float | None = None
     planned_households: int | None = None
     population: int | None = None
     vacant_houses: int | None = None

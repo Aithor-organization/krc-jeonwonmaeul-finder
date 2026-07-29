@@ -84,7 +84,27 @@ def test_map_sale_item_matches_internal_schema():
     assert m["분양율"] == 100
     # 샘플 데이터와 동일한 키 집합이어야 기존 필터/스코어링이 그대로 동작
     assert set(m) == {"gu_id", "지구명", "시도명", "시군구", "읍면동",
-                      "법정동코드", "계획세대수", "진행단계", "분양율"}
+                      "법정동코드", "계획세대수", "진행단계", "분양율",
+                      # 100 초과라 표시를 보류한 원천 값. '없음'과 '믿지 못함'을
+                      # 구분해 사유를 다르게 적기 위해 필요하다 (남도 150%).
+                      "분양율_범위초과"}
+
+
+def test_mapped_shape_matches_the_offline_sample():
+    """라이브 매핑과 샘플 픽스처의 키가 갈리면, 키 없이 여는 사람은 다른 화면을 본다.
+
+    이번 세션에 마을 데이터에서 같은 불일치가 실제로 발생했다 — 인덱스에만
+    필드를 넣고 샘플을 빼먹어 오프라인 모드가 조용히 빈약해졌다.
+    """
+    import json
+    from pathlib import Path
+    sample = json.loads(
+        (Path(__file__).resolve().parents[1] / "data" / "samples" / "jeonwon_sale.json")
+        .read_text(encoding="utf-8"))
+    mapped_keys = set(km.map_sale_item(REAL_ITEM))
+    for row in sample:
+        assert set(row) == mapped_keys, (row.get("지구명"),
+                                         mapped_keys ^ set(row))
 
 
 def test_map_households_zero_is_undisclosed():

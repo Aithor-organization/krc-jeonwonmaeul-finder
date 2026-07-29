@@ -241,8 +241,23 @@ function droughtHtml(drought) {
  * 답은 '못 가져온다'가 아니라 '원천이 비어 있다'이고, 그 차이가 중요하다.
  */
 const UNKNOWN_REASON = {
-  분양율: "원천 미입력 (167건 중 141건이 0)",
-  계획세대수: "원천 미입력",
+  분양율: "이 지구 값이 원천에 없음 (전국 167곳 중 141곳이 같음)",
+  계획세대수: "이 지구 값이 원천에 없음",
+};
+
+/** 지표가 무엇의 값인지. 🔴 이 카드에서 가장 헷갈리는 지점이다.
+ *
+ * "분양율 / 확인 불가 / 원천 미입력 (167건 중 141건이 0)"을 그대로 쌓아 두면
+ * 위는 이 지구 하나의 값인데 아래는 전국 통계라, 한 칸 안에서 단위가 뒤바뀐다.
+ * 실제로 "여기 분양율이 이 지구 얘기냐 지역 얘기냐"는 질문이 나왔다.
+ *
+ * 지역 값이 아니라는 것은 원천으로 확인된다 — 강원 원주시에 100%인 지구
+ * (지정새싹)와 0%인 지구(서곡)가 함께 있다. 이렇게 한 시군구 안에서 값이
+ * 갈리는 곳이 9곳이다. 지역 단위였다면 같은 값이어야 한다.
+ */
+const METRIC_SCOPE = {
+  분양율: "이 지구의 계획세대수 대비 분양된 비율입니다. 시군구·지역 전체 값이 아닙니다.",
+  계획세대수: "이 지구에 조성 예정인 세대 수입니다.",
 };
 
 /** 분양율 수치가 없어도 진행단계가 답을 주는 경우가 있다.
@@ -251,23 +266,36 @@ const UNKNOWN_REASON = {
  * 남은 자리가 없다는 건 안다(수치가 기록된 완료 지구 6건 전부 100%).
  * 그 판단은 점수에도 반영되므로(가용성 0), 카드에도 같은 말을 적는다.
  */
-function unknownRateReason(stage) {
-  if (stage === "분양완료") return "수치는 미입력이지만 분양완료 — 남은 자리 없음";
-  if (stage === "분양예정") return "분양 시작 전이라 기록 없음";
+function unknownRateReason(card) {
+  // 🔴 '없음'과 '범위를 벗어남'은 화면에서 같은 "확인 불가"로 보이지만 이유가
+  // 다르다. 구례 남도는 원천에 150%가 적혀 있는데(계획 20세대) "원천에 값이
+  // 없음"이라고 말하면 그건 사실이 아니다. 값이 있었다는 것과, 그 값을 믿지
+  // 못해 보류했다는 것을 그대로 적는다.
+  const over = card.sale_rate_out_of_range;
+  if (over != null) {
+    return "원천 기록은 " + esc(String(over)) + "%지만 100%를 넘어 표시를 보류했습니다";
+  }
+  const stage = card.sale_stage;
+  if (stage === "분양완료") return "이 지구는 수치 미입력이지만 분양완료 — 남은 자리 없음";
+  if (stage === "분양예정") return "이 지구는 분양 시작 전이라 기록 없음";
   return UNKNOWN_REASON.분양율;
 }
 
 function metricHtml(key, value, suffix, reasonOverride) {
   const unknown = value == null;
-  const text = reasonOverride || UNKNOWN_REASON[key];
-  const reason = unknown && text
-    ? '<div class="metric-reason">' + esc(text) + "</div>"
-    : "";
+  const text = unknown ? (reasonOverride || UNKNOWN_REASON[key]) : "";
+  const line = text ? '<div class="metric-reason">' + esc(text) + "</div>" : "";
+  const scope = METRIC_SCOPE[key] || "";
   return (
     '<div class="metric' + (unknown ? " is-unknown" : "") + '">' +
-      '<div class="key">' + esc(key) + "</div>" +
+      '<div class="key"' + (scope ? ' title="' + esc(scope) + '"' : "") + ">" +
+        esc(key) +
+        // 스코프는 툴팁만으로 두면 안 읽힌다 — 이 칸이 무엇의 값인지가
+        // 카드에서 가장 자주 오해받는 지점이라 항상 보이게 적는다.
+        (scope ? '<span class="metric-scope">이 지구 기준</span>' : "") +
+      "</div>" +
       '<div class="value">' + esc(formatNumber(value, suffix)) + "</div>" +
-      reason +
+      line +
     "</div>"
   );
 }
@@ -280,7 +308,7 @@ function metricHtml(key, value, suffix, reasonOverride) {
  */
 function metricsHtml(card) {
   const metrics = [
-    { key: "분양율", value: card.sale_rate, suffix: "%", reason: unknownRateReason(card.sale_stage) },
+    { key: "분양율", value: card.sale_rate, suffix: "%", reason: unknownRateReason(card) },
     { key: "계획세대수", value: card.planned_households, suffix: "세대" },
   ];
   const known = metrics.filter((m) => m.value != null);

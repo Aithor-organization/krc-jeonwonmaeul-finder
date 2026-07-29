@@ -321,8 +321,24 @@ body.results-mode .results-section {
 }
 
 .metric .key {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   color: var(--muted);
   font-size: 12px;
+}
+
+/* 이 칸이 무엇의 값인지. 분양율은 지구 단위인데 바로 아래 미입력 사유는
+   전국 통계라, 표시가 없으면 한 칸 안에서 단위가 뒤바뀐 것처럼 읽힌다. */
+.metric-scope {
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .metric .value {

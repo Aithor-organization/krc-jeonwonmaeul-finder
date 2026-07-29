@@ -251,6 +251,7 @@ class Orchestrator:
                 eupmyeon=sale.get("읍면동"),
                 sale_stage=sale.get("진행단계"),
                 sale_rate=_num(sale.get("분양율")),
+                sale_rate_out_of_range=_num(sale.get("분양율_범위초과")),
                 planned_households=_int(sale.get("계획세대수")),
                 population=_int(village.get("인구")) if village else None,
                 vacant_houses=_int(village.get("빈집수")) if village else None,

@@ -122,9 +122,25 @@ def map_sale_rate(value: object) -> float | None:
     return v
 
 
+def out_of_range_rate(value: object) -> float | None:
+    """100을 넘어 표시를 보류한 원천 값. 정상 범위면 None.
+
+    🔴 '없음'과 '범위를 벗어남'은 다르다. 둘 다 확인 불가로 표시하더라도
+    **이유가 다르면 다르게 말해야 한다** — 구례 남도는 원천에 150%가
+    적혀 있는데 화면이 "원천에 값이 없음"이라고 하면 그건 사실이 아니다.
+
+    실측: 167건 중 100 초과는 1건(남도 150%, 계획 20세대).
+    """
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None
+    v = float(value)
+    return v if v > 100 else None
+
+
 def map_sale_item(raw: dict) -> dict:
     """전원마을 분양정보 1건 → 내부 한글 스키마 (샘플 데이터와 동일 키)."""
     return {
+        "분양율_범위초과": out_of_range_rate(raw.get("bndeLttotHscntPer")),
         "gu_id": str(raw.get("inbpnCode") or ""),
         "지구명": str(raw.get("zoneName") or ""),
         "시도명": map_sido(raw.get("sidoNm")),

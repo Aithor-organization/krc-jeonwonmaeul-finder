@@ -66,4 +66,6 @@ def test_card_reason_uses_the_stage(monkeypatch):
     app_js = client.get("/app.js").text
     assert "function unknownRateReason" in app_js
     assert "분양완료 — 남은 자리 없음" in app_js
-    assert "unknownRateReason(card.sale_stage)" in app_js
+    # 카드 전체를 받는다 — 단계뿐 아니라 '원천 값이 범위를 벗어난 경우'도
+    # 사유를 갈라야 해서 sale_stage 하나로는 부족해졌다 (남도 150%).
+    assert "unknownRateReason(card)" in app_js
