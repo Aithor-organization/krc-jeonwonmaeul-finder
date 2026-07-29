@@ -36,12 +36,29 @@ def test_scoring_vacant_preference_hit():
     assert any("선호" in r for r in reasons)
 
 
-def test_scoring_resource_preference_hit():
-    p = ParsedQuery(preferences=["교통편의"])
-    village = {"자원": "교통 편리 조용함", "빈집수": 20, "인구": 900,
-               "법정동코드": "44710310", "시군구": "예산군"}
-    _, _, reasons = scoring.score_card(p, BASE_SALE, village)
-    assert any("선호" in r for r in reasons)
+def test_scoring_ignores_prefs_it_cannot_judge():
+    """교통편의는 대조할 필드가 없으므로 점수에 넣지 않는다.
+
+    이 테스트는 원래 village에 "자원": "교통 편리…"를 넣어 매칭을 통과시켰다.
+    그런데 실제 인덱스(build_village_index.slim)는 자원 서술을 담지 않는다 —
+    프로덕션에서 절대 성립하지 않는 경로를 테스트가 지켜준 셈이라, 조건을
+    적을수록 점수가 깎이는 버그가 그대로 살아남았다.
+    이제는 실제 인덱스와 같은 형태(자원 필드 없음)로 검사한다.
+    """
+    village = {"빈집수": 20, "인구": 900, "법정동코드": "44710310", "시군구": "예산군"}
+    plain = scoring.score_card(ParsedQuery(preferences=[]), BASE_SALE, village)[0]
+    with_pref = scoring.score_card(ParsedQuery(preferences=["교통편의"]), BASE_SALE, village)[0]
+    assert with_pref == plain, "판정 못 하는 조건을 적었다고 점수가 달라지면 안 된다"
+
+
+def test_village_index_really_has_no_resource_field():
+    """위 테스트의 전제 — 인덱스에 자원 서술이 없다는 사실을 고정한다."""
+    import json
+    import config
+    with open(config.BASE_DIR / "data" / "village_index.json", encoding="utf-8") as f:
+        villages = json.load(f)["villages"]
+    for v in villages.values():
+        assert not any(k in v for k in ("자원", "특징", "자연자원", "경제자원")), v
 
 
 def test_scoring_grade_b_sigungu_match():

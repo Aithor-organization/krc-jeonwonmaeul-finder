@@ -439,6 +439,29 @@ body.results-mode .scroll-cue {
   font-weight: 700;
 }
 
+/* 검색 전에 "무엇으로 못 찾는지"를 알린다. 입력 후 경고로 알리면 이미
+   기대가 만들어진 뒤라 늦다. */
+.search-limits {
+  max-width: 760px;
+  margin: 12px 0 0;
+  padding-left: 11px;
+  border-left: 2px solid var(--sand);
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.search-limits strong {
+  color: var(--white);
+  font-weight: 700;
+}
+
+.search-limits a {
+  color: var(--sand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* --- 지역 드롭다운 (자연어 입력의 대안 경로) ---------------------------------
    히어로 위(어두운 배경)에 놓이므로 select 자체를 밝게 칠한다. OS 기본 select는
    배경만 바꾸면 화살표가 안 보이는 환경이 있어 배경 이미지로 직접 그린다. */

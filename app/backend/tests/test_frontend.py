@@ -295,6 +295,43 @@ def test_unknown_metric_is_visually_demoted():
     assert size(demoted) < size(base), "확인 불가가 실제 수치보다 작아야 한다"
 
 
+# --- 없는 데이터의 고지 (2026-07-29) ---
+def test_missing_price_is_disclosed_before_searching():
+    """예산 입력 후 경고로 알리면 이미 기대가 만들어진 뒤라 늦다."""
+    html = client.get("/").text
+    css = client.get("/style.css").text
+    assert 'class="search-limits"' in html
+    assert "분양가" in html.split('class="search-limits"')[1][:400]
+    assert ".search-limits" in css
+
+
+def test_example_chips_only_suggest_workable_conditions():
+    """서비스가 먼저 '2억이라고 쳐보세요'라고 해놓고 '그건 반영 안 됩니다'는 모순이다."""
+    import re
+    from scoring import UNSCORABLE_PREFS
+    import intent
+    html = client.get("/").text
+    for m in re.finditer(r'class="query-chip"[^>]*data-query="([^"]+)"', html):
+        q = m.group(1)
+        parsed = intent.parse(q)
+        assert not parsed.budget_max_krw, f"예시가 예산을 권한다: {q}"
+        bad = [p for p in parsed.preferences if p in UNSCORABLE_PREFS]
+        assert not bad, f"예시가 판정 불가 조건을 권한다: {q} → {bad}"
+        # 예시라면 최소 하나는 실제로 걸려야 한다
+        assert parsed.region.sido or parsed.sale_stage or parsed.preferences, q
+
+
+def test_evidence_page_lists_every_available_field():
+    """없는 것을 설명하는 가장 정확한 방법은 있는 것을 전부 보여주는 것이다."""
+    html = client.get("/data-evidence.html").text
+    assert 'id="fields"' in html
+    for field in ("zoneName", "sidoNm", "sggNm", "emdNm", "legalCode",
+                  "inbpnCode", "progrsStep", "planHscnt", "bndeLttotHscntPer"):
+        assert field in html, field
+    assert "분양가" in html and "대지면적" in html
+    assert '/data-evidence.html#fields' in client.get("/").text, "검색 화면에서 닿아야 한다"
+
+
 # --- 결과 화면 정보 위계 (2026-07-29) ---
 def test_results_headline_is_filled_with_real_numbers():
     """'조건에 맞는 전원마을'은 어떤 검색에도 똑같이 붙어 46px를 쓰고도 알려주는 게 없었다."""

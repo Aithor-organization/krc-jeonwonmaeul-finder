@@ -117,6 +117,36 @@
     </div>
   </section>
 
+  <!-- "왜 분양가로 못 찾나"에 목록으로 답한다. 없는 걸 설명하는 가장 정확한
+       방법은 있는 걸 전부 보여주는 것이다. 채움률은 167건 전수 실측값. -->
+  <section id="fields" class="page-section white">
+    <div class="section-shell">
+      <div class="evidence-header">
+        <p class="section-kicker">Available fields</p>
+        <h2>검색할 수 있는 항목은<br />이 9개가 전부입니다.</h2>
+        <p>전원마을 분양정보 API가 내려주는 필드 전체입니다. 목록에 없는 항목(분양가·대지면적·신청 일정·연락처)은 저희가 감춘 게 아니라 <strong>공공데이터에 존재하지 않습니다</strong>. 채움률은 167건 전수 집계 결과입니다.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="field-table">
+          <thead><tr><th>항목</th><th>원본 필드</th><th class="r">채움률</th><th>검색 조건</th></tr></thead>
+          <tbody>
+            <tr><td>지구명</td><td><code>zoneName</code></td><td class="r">100%</td><td>표시</td></tr>
+            <tr><td>시도</td><td><code>sidoNm</code></td><td class="r">100%</td><td><span class="pill normal">사용</span></td></tr>
+            <tr><td>시군구</td><td><code>sggNm</code></td><td class="r">100%</td><td><span class="pill normal">사용</span></td></tr>
+            <tr><td>읍면동</td><td><code>emdNm</code></td><td class="r">100%</td><td>표시</td></tr>
+            <tr><td>법정동코드</td><td><code>legalCode</code></td><td class="r">100%</td><td>마을현황 결합 키</td></tr>
+            <tr><td>지구코드</td><td><code>inbpnCode</code></td><td class="r">100%</td><td>식별자</td></tr>
+            <tr><td>진행단계</td><td><code>progrsStep</code></td><td class="r">100%</td><td><span class="pill normal">사용</span></td></tr>
+            <tr><td>계획세대수</td><td><code>planHscnt</code></td><td class="r">96%</td><td><span class="pill normal">사용</span></td></tr>
+            <tr><td>분양율</td><td><code>bndeLttotHscntPer</code></td><td class="r">16%</td><td><span class="pill caution">대부분 확인 불가</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="live-status"><strong>분양가·대지면적·신청 일정·연락처는 위 목록에 없습니다.</strong> 그래서 &ldquo;2억 이하&rdquo; 같은 조건은 문장에서 읽어도 <strong>필터로 적용하지 않고</strong>, 적용하지 않았다는 사실을 결과 화면에 표시합니다. 실제 분양가는 공식 분양처에서 확인해 주세요.</p>
+      <p class="live-status"><strong>선호 조건도 판정할 수 있는 것만 점수에 넣습니다.</strong> 조용함(마을 인구)과 빈집 적음(빈집수)은 농촌마을현황으로 대조할 수 있지만, 교통·스마트팜·청년창업·작물·축산은 대조할 공공데이터가 없어 <strong>점수에서 제외하고 그 사실을 함께 알립니다</strong> — 반영하지 못한 조건 때문에 점수가 깎이지 않도록.</p>
+    </div>
+  </section>
+
   <section class="page-section forest">
     <div class="section-shell">
       <div class="evidence-header">

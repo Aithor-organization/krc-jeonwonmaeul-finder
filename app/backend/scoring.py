@@ -13,6 +13,30 @@ _STAGE_SCORE = {"분양중": 1.0, "분양예정": 0.6, "분양완료": 0.1}
 WEIGHTS = {"진행단계": 0.5, "가용성": 0.3, "선호매칭": 0.2}
 FORMULA = "0.5 × 진행단계 + 0.3 × 가용성 + 0.2 × 선호매칭"
 
+# 판정할 수 있는 선호 — 실제로 대조할 필드가 있는 것만.
+#   조용함   ← 농촌마을현황 인구
+#   빈집적음 ← 농촌마을현황 빈집수
+SCORABLE_PREFS = {"조용함", "빈집적음"}
+
+# 인식은 하지만 판정할 데이터가 없는 선호.
+#
+# 🔴 이 목록을 분모에 넣으면 안 된다. 전에는 넣고 있었고, 대조할 필드가 없어
+# 100% 미부합했다 — "강원 스마트팜 마을"이 "강원 마을"보다 0.1점 낮았다(실측
+# 0.65 vs 0.75). 조건을 더 적을수록 점수가 떨어지는 셈이라, 사용자 입장에서는
+# 반영된 것도 아니고 무시된 것도 아닌 최악의 상태였다.
+#
+# 마을 자원 서술(villDescription)로 판정하던 경로가 있었으나, 그 필드는
+# 마을 연혁·지리 서술이라 선호 매칭에 쓰면 노이즈만 늘어 인덱스에서 제외했다.
+# 그 결정의 결과를 여기서 정직하게 받는다 — 판정 못 하면 점수에 넣지 않는다.
+UNSCORABLE_PREFS = {
+    "교통편의": "도로·대중교통 데이터가 공공데이터에 없습니다",
+    "스마트팜": "스마트팜 시설 정보가 공공데이터에 없습니다",
+    "청년창업": "청년창업 지원 여부가 공공데이터에 없습니다",
+    "과수재배": "작물 정보가 공공데이터에 없습니다",
+    "축산": "축산 정보가 공공데이터에 없습니다",
+    "물사정": "지역 가뭄 정보는 별도 패널로 안내하며 점수에는 넣지 않습니다",
+}
+
 
 def _terms(parsed, sale: dict, village: dict | None) -> tuple[list[dict], list[str]]:
     """세 항의 (값, 근거)를 계산한다. 점수와 산식 전개가 공유하는 단일 출처."""
@@ -43,8 +67,8 @@ def _terms(parsed, sale: dict, village: dict | None) -> tuple[list[dict], list[s
         avail = 0.5
         avail_basis = f"분양율 미상 → 기본값 {avail}"
 
-    # ── 3항: 선호매칭 ──
-    prefs = list(getattr(parsed, "preferences", []) or [])
+    # ── 3항: 선호매칭 (판정 가능한 것만) ──
+    prefs = [p for p in (getattr(parsed, "preferences", []) or []) if p in SCORABLE_PREFS]
     pref_hits = 0
     resources = ""
     vac = None
@@ -60,18 +84,13 @@ def _terms(parsed, sale: dict, village: dict | None) -> tuple[list[dict], list[s
             pref_hits += 1
         elif p == "조용함" and (isinstance(pop, (int, float)) and pop < 500 or "조용" in resources):
             pref_hits += 1
-        elif p == "물사정":
-            # 물 관심은 '지역 가뭄 패널'로 응답되므로 점수에 반영하지 않음 (AC4)
-            continue
-        elif p.replace("편의", "").replace("적음", "").replace("재배", "") in resources:
-            pref_hits += 1
-    scored_prefs = [p for p in prefs if p != "물사정"]
-    pref_score = (pref_hits / len(scored_prefs)) if scored_prefs else 0.5
+    # prefs는 이미 SCORABLE_PREFS로 걸러져 있으므로 판정 불가 분기가 필요 없다
+    pref_score = (pref_hits / len(prefs)) if prefs else 0.5
     if pref_hits:
         reasons.append(f"선호 조건 {pref_hits}개 부합")
     pref_basis = (
-        f"선호 {len(scored_prefs)}개 중 {pref_hits}개 부합 → {pref_hits}/{len(scored_prefs)} = {pref_score:g}"
-        if scored_prefs else f"선호 조건 없음 → 중립값 {pref_score}"
+        f"선호 {len(prefs)}개 중 {pref_hits}개 부합 → {pref_hits}/{len(prefs)} = {pref_score:g}"
+        if prefs else f"판정 가능한 선호 조건 없음 → 중립값 {pref_score}"
     )
 
     terms = [

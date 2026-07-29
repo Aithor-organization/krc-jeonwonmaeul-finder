@@ -205,6 +205,14 @@ class Orchestrator:
         if parsed.budget_max_krw:
             warnings.append("예산은 참고용입니다 — 공공 분양정보에 분양가가 없어 예산 필터는 적용되지 않습니다. 분양가는 공식 분양처에서 확인하세요.")
 
+        # 인식은 했지만 대조할 데이터가 없는 선호는 점수에 넣지 않는다(scoring.SCORABLE_PREFS).
+        # 조용히 빼면 사용자는 반영됐다고 믿는다 — 뺀 사실과 이유를 밝힌다.
+        unscorable = [p for p in (parsed.preferences or []) if p in scoring.UNSCORABLE_PREFS]
+        if unscorable:
+            warnings.append(
+                "다음 조건은 점수에 반영하지 못했습니다 — "
+                + " / ".join(f"{p}: {scoring.UNSCORABLE_PREFS[p]}" for p in unscorable))
+
         if not sales:
             warnings.append("조건에 맞는 전원마을 분양 정보를 찾지 못했습니다.")
 

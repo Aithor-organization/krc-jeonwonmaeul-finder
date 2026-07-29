@@ -85,6 +85,14 @@
               <a href="/settings.html">설정에서 키 넣기</a>
             </p>
 
+            <!-- 검색하기 전에 알려준다. 예산을 입력한 뒤 경고로 알리면 이미
+                 기대가 만들어진 뒤라 늦다 — 무엇으로 못 찾는지가 먼저다. -->
+            <p class="search-limits">
+              <strong>분양가·대지면적·신청 일정은 검색할 수 없습니다</strong>
+              — 공공데이터(전원마을 분양정보)가 제공하는 항목이 지역·진행단계·계획세대수·분양율뿐입니다.
+              <a href="/data-evidence.html#fields">제공 항목 전체 보기</a>
+            </p>
+
             <!-- 목록은 /api/regions가 채운다. 새 공공데이터 API를 부르지 않고
                  검색에 쓰는 분양정보에서 뽑으므로, 여기 보이는 지역은 항상
                  실제로 결과가 나오는 지역이다. 로드 실패 시 숨긴 채로 두고
@@ -109,9 +117,14 @@
 
           <div id="query-help" class="examples" aria-label="검색 예시">
             <span>이렇게 검색해 보세요</span>
-            <button class="query-chip" type="button" data-query="충남, 예산 2억, 분양 진행 중인 조용한 전원마을">충남 · 2억 · 조용한 곳</button>
-            <button class="query-chip" type="button" data-query="전남 청년 창업농, 관광 좋은 곳">전남 · 청년 창업농</button>
-            <button class="query-chip" type="button" data-query="강원, 분양 중, 스마트팜 인근 교통 좋은 곳">강원 · 스마트팜 인근</button>
+            <!-- 🔴 예시는 실제로 점수에 반영되는 조건만 권한다.
+                 전에는 "2억"·"스마트팜"·"청년 창업농"을 권했는데 셋 다 대조할
+                 공공데이터가 없어 반영되지 않았다 — 서비스가 먼저 권해놓고
+                 "그건 안 됩니다"라고 답하는 꼴이었다.
+                 반영되는 것: 지역 · 진행단계 · 조용함(인구) · 빈집적음(빈집수) -->
+            <button class="query-chip" type="button" data-query="충남 분양 중인 조용한 전원마을">충남 · 분양 중 · 조용한 곳</button>
+            <button class="query-chip" type="button" data-query="전남 분양 예정이고 빈집 적은 마을">전남 · 분양 예정 · 빈집 적은 곳</button>
+            <button class="query-chip" type="button" data-query="강원 분양 중인 마을">강원 · 분양 중</button>
           </div>
 
           <!-- 이 숫자들은 프로덕션에서 실제로 성립하는 것만 적는다.
