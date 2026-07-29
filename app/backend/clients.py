@@ -5,8 +5,10 @@
   전원마을 분양정보는 전국 167건이라 1회 전량 수신 후 기존 필터 로직을 그대로 재사용한다.
   호출 실패 시 샘플로 fallback하고 경고를 남긴다(조용한 실패 금지, §3.4).
 
-농촌마을현황(인구·빈집수)은 전국 2.8만 건 규모라 live 조인을 하지 않는다 —
-live-mode에서 get_village는 None을 반환하고 그 사실을 경고로 고지한다.
+농촌마을현황(인구·빈집수)은 전국 2.8만 건 규모이고 API에 서버 필터가 없어
+요청 시점 조회가 불가능하다. scripts/build_village_index.py가 분양지구에 붙는
+마을만 미리 추려 두고(data/village_index.json), live-mode는 그 인덱스로 조인한다.
+스냅샷이므로 생성 기준일을 notes로 고지한다.
 """
 from __future__ import annotations
 
@@ -15,7 +17,7 @@ import time
 
 import config
 import krc_live
-from krc_mapping import RATE_NOTE, STAGE_NOTE, VILLAGE_NOTE, map_sales
+from krc_mapping import RATE_NOTE, STAGE_NOTE, map_sales, village_note
 
 
 def _load(name: str) -> list[dict]:
@@ -24,6 +26,22 @@ def _load(name: str) -> list[dict]:
 
 
 SAMPLE_NOTE = "sample-mode: 공공데이터 서비스키가 없어 샘플 데이터로 동작합니다."
+
+
+def _load_village_index() -> dict:
+    """사전 빌드된 마을 인덱스. 없으면 빈 인덱스로 동작한다(조인만 빠짐).
+
+    농촌마을현황 API는 서버 필터가 없어 전건(28,342)이 그대로 오고 13초/31MB가
+    든다 — 요청 때마다 할 수 없다. scripts/build_village_index.py가 분양지구에
+    붙는 것만 미리 추려 두고(30KB), 런타임은 그걸 읽기만 한다.
+    """
+    path = config.BASE_DIR / "data" / "village_index.json"
+    try:
+        with open(path, encoding="utf-8") as f:
+            payload = json.load(f)
+        return payload if isinstance(payload.get("villages"), dict) else {}
+    except (OSError, ValueError, AttributeError):
+        return {}
 
 
 class KrcDataClient:
@@ -37,6 +55,7 @@ class KrcDataClient:
         self.notes: list[str] = []      # 데이터 성격 안내 (문제 아님)
 
         self._village = {v["법정동코드"]: v for v in _load("rural_village.json")}
+        self._village_index = _load_village_index()
         self._drought = {d["시군구"]: d for d in _load("drought.json")}
         self._sale: list[dict] | None = None
         self._retry_at = 0.0
@@ -66,7 +85,15 @@ class KrcDataClient:
             self.sample_mode = False
             self.live_active = True
             self.warnings = []
-            self.notes = [STAGE_NOTE, VILLAGE_NOTE, RATE_NOTE]
+            # 마을 조인은 인덱스가 있을 때만 고지한다 — 없으면 조인 자체가 안 되므로
+            # "스냅샷을 쓴다"는 안내가 거짓이 된다.
+            self.notes = [STAGE_NOTE, RATE_NOTE]
+            idx = self._village_index
+            if idx.get("villages"):
+                self.notes.insert(1, village_note(
+                    idx.get("generated_at"),
+                    idx.get("matched_districts", 0),
+                    idx.get("sale_districts") or len(self._sale)))
         except krc_live.KrcApiError as e:
             self._retry_at = time.monotonic() + config.KRC_RETRY_AFTER_S
             self._fall_back(
@@ -104,10 +131,17 @@ class KrcDataClient:
 
     # --- 농촌마을현황 (보조) ---
     def get_village(self, bjd_code: str | None) -> dict | None:
-        # live-mode에서는 조인하지 않는다 (VILLAGE_NOTE로 고지됨)
+        """법정동코드가 정확히 일치하는 마을만 반환. 없으면 None.
+
+        읍면동(앞 8자리)까지 느슨하게 맞추면 매칭률이 90%→99%로 오르지만,
+        읍면동 하나에 마을이 중앙값 22개라 그중 하나를 고르는 건 근거가 아니라
+        추측이다. 붙지 않으면 '확인 불가'로 두는 편이 정직하다.
+        """
         self.ensure_loaded()
-        if self.live_active or not bjd_code:
+        if not bjd_code:
             return None
+        if self.live_active:
+            return (self._village_index.get("villages") or {}).get(str(bjd_code))
         return self._village.get(bjd_code)
 
     # --- 논가뭄지도 (지역 가뭄 패널) ---

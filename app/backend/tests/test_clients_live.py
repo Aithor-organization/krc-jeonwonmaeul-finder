@@ -2,7 +2,7 @@
 import config
 import krc_live
 from clients import KrcDataClient
-from krc_mapping import STAGE_NOTE, VILLAGE_NOTE
+from krc_mapping import STAGE_NOTE
 
 RAW = [
     {"inbpnCode": "X1", "zoneName": "가마을", "sidoNm": "전남광주통합특별시",
@@ -51,17 +51,35 @@ def test_live_mode_emits_honest_notes(monkeypatch):
     c = KrcDataClient(sample_mode=False)
     c.ensure_loaded()
     assert STAGE_NOTE in c.notes         # 단계 변환 사실 고지
-    assert VILLAGE_NOTE in c.notes       # 마을 상세 미포함 고지
+    assert any("스냅샷" in n for n in c.notes), "마을 상세의 기준일을 밝혀야 한다"
     assert c.warnings == []              # 정상 동작에는 경고가 없어야 한다
     assert not any("sample-mode" in n for n in c.notes)
 
 
-def test_live_mode_village_not_joined(monkeypatch):
-    """live에서는 인구·빈집수를 조인하지 않는다 (2.8만 건 스케일)."""
+def test_live_mode_joins_village_by_exact_code(monkeypatch):
+    """live에서 법정동코드가 정확히 일치하면 인구·빈집을 붙인다.
+
+    2026-07-29 이전에는 조인 자체를 하지 않아 인구·빈집이 항상 None이고
+    신뢰도 등급이 전부 C로 고정됐다. 사전 빌드 인덱스로 해소.
+    """
     monkeypatch.setattr(config, "KRC_SERVICE_KEY", "KEY")
     monkeypatch.setattr(krc_live, "fetch_sales", lambda key, **kw: RAW)
     c = KrcDataClient(sample_mode=False)
-    assert c.get_village("44710310") is None
+    c.ensure_loaded()
+    codes = list((c._village_index.get("villages") or {}))
+    assert codes, "인덱스가 비어 있으면 조인 기능이 죽는다"
+    v = c.get_village(codes[0])
+    assert v and v["법정동코드"] == codes[0]
+    assert set(v) >= {"마을명", "인구", "빈집수"}
+
+
+def test_live_mode_returns_none_for_unmatched_code(monkeypatch):
+    """붙지 않으면 '확인 불가' — 읍면동만 같은 마을을 임의로 대체하지 않는다."""
+    monkeypatch.setattr(config, "KRC_SERVICE_KEY", "KEY")
+    monkeypatch.setattr(krc_live, "fetch_sales", lambda key, **kw: RAW)
+    c = KrcDataClient(sample_mode=False)
+    c.ensure_loaded()
+    assert c.get_village("9999999999") is None
     assert c.get_village(None) is None
 
 

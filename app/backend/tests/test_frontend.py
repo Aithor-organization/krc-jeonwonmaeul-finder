@@ -212,11 +212,27 @@ def test_hero_number_matches_actual_dataset_size():
 
 
 def test_evidence_page_discloses_live_status_per_dataset():
-    """설계와 현재 동작이 다르면 데이터셋 카드에서 그 사실을 밝힌다."""
+    """각 데이터셋의 결합 방식과 한계를 카드에서 밝힌다.
+
+    2026-07-29 농촌마을현황 조인 이후 이 페이지가 "실시간 연동 전"이라고
+    말하고 있었다 — 기능이 생기면 그걸 설명하던 문구도 같이 낡는다.
+    """
     html = client.get("/data-evidence.html").text
-    assert html.count('class="live-status"') >= 2, "미연동 2종의 상태 고지가 필요"
-    assert "실시간 연동 전" in html
-    assert "파일데이터" in html
+    assert html.count('class="live-status"') >= 2
+    assert "실시간 연동 전" not in html, "농촌마을현황은 이제 결합된다"
+    assert "법정동코드 완전일치" in html, "결합 키를 밝혀야 한다"
+    assert "파일데이터" in html, "논가뭄지도는 아직 CSV — 그 한계는 그대로 남는다"
+
+
+def test_evidence_page_has_no_stale_sample_mode_claim():
+    """배포본은 live인데 'sample-mode로 동작합니다'라고 단언하면 안 된다.
+
+    푸터의 .mode-flag는 JS가 /api/health로 실시간 갱신하므로 예외.
+    """
+    html = client.get("/data-evidence.html").text
+    body = html.replace('<span class="mode-flag">sample-mode로 동작 중</span>', "")
+    assert "현재는 sample-mode" not in body
+    assert "sample-mode를 유지" not in body
 
 
 def test_query_input_has_length_cap():
