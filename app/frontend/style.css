@@ -513,6 +513,14 @@ body.results-mode .scroll-cue {
   color: var(--white);
 }
 
+/* 전국 17개 시도가 아니라 분양 지구가 실재하는 곳만 나온다는 사실 고지 */
+.region-hint {
+  flex-basis: 100%;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
 .examples {
   display: flex;
   flex-wrap: wrap;

@@ -71,7 +71,7 @@ class Orchestrator:
         )
 
     def search(self, query: str | None = None, structured=None, top_n: int = 3,
-               api_key: str | None = None) -> SearchResponse:
+               api_key: str | None = None, filters=None) -> SearchResponse:
         # 데이터 상태를 먼저 확정해야 아래 warnings/notes가 이번 요청의 실제 상태를 담는다
         # (클라이언트는 지연 로드 + 실패 재시도라 요청마다 상태가 바뀔 수 있다).
         self.client.ensure_loaded()
@@ -125,6 +125,28 @@ class Orchestrator:
                         "— 데이터에 없는 이름이거나 금액 표현과 겹칩니다.")
             elif not parsed.region.sigungu:
                 parsed.region.sigungu = matched
+
+        # 1-bis) 화면에서 고른 조건은 문장 해석보다 우선한다.
+        #
+        # match_sigungu 검증 **뒤에** 적용하는 이유: 그 검증은 문장에서 뽑은
+        # 이름이 데이터에 실재하는지 확인하는 절차인데, 여기 오는 값은 애초에
+        # /api/regions 목록에서 고른 것이라 검증 대상이 아니다. 앞에 두면
+        # 사용자가 고른 시군구를 문장 기준으로 지워버린다.
+        applied: list[str] = []
+        if filters is not None:
+            if getattr(filters, "sido", None):
+                parsed.region.sido = filters.sido
+                applied.append(filters.sido)
+            if getattr(filters, "sigungu", None):
+                parsed.region.sigungu = filters.sigungu
+                applied.append(filters.sigungu)
+            if getattr(filters, "sale_stage", None):
+                parsed.sale_stage = [filters.sale_stage]
+                applied.append(filters.sale_stage)
+            if applied and query:
+                notes.append(
+                    "직접 고른 조건(" + " · ".join(applied) + ")을 문장 해석보다 우선 적용했습니다"
+                    " — 나머지 조건은 문장에서 읽었습니다.")
 
         # 조건 미인식 → 전체 덤프 대신 안내 (두 입력 경로 공통)
         if not (parsed.region.sido or parsed.region.sigungu or parsed.sale_stage

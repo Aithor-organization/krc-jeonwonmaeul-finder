@@ -32,6 +32,7 @@ const el = {
   selSigungu: $("#sel-sigungu"),
   selStage: $("#sel-stage"),
   regionReset: $("#region-reset"),
+  regionHint: $("#region-hint"),
 };
 
 // /api/regions 응답. 로드 전이거나 실패하면 null이고, 그 경우 지역 선택 UI는
@@ -558,7 +559,18 @@ function openEvidence(guName) {
 
 // --- 지역 드롭다운 (자연어 입력의 대안 경로) ---
 
-/** 선택된 값들을 백엔드 ParsedQuery 형태로 만든다.
+/** 선택된 값들. 문장 없이 이것만 있으면 그대로 조건이 되고,
+ *  문장과 함께 있으면 문장 해석 결과 중 이 항목들만 덮어쓴다.
+ */
+function selectedFilters() {
+  const sido = el.selSido.value;
+  const sigungu = el.selSigungu.value;
+  const stage = el.selStage.value;
+  if (!sido && !sigungu && !stage) return null;
+  return { sido: sido || null, sigungu: sigungu || null, sale_stage: stage || null };
+}
+
+/** 목록 선택만 있을 때 쓰는 백엔드 ParsedQuery.
  *
  * 문장으로 바꿔 파서에 다시 태우지 않는 이유: 사용자가 목록에서 직접 고른
  * 값은 이미 확정된 조건이다. 그걸 다시 문장으로 만들어 해석시키면 추측이
@@ -566,18 +578,16 @@ function openEvidence(guName) {
  * 결과가 0건이 된 적이 있다. 서버의 structured 경로가 파싱을 건너뛴다.
  */
 function structuredFromSelects() {
-  const sido = el.selSido.value;
-  const sigungu = el.selSigungu.value;
-  const stage = el.selStage.value;
-  if (!sido && !sigungu && !stage) return null;
+  const f = selectedFilters();
+  if (!f) return null;
   return {
-    region: { sido: sido || null, sigungu: sigungu || null },
+    region: { sido: f.sido, sigungu: f.sigungu },
     budget_max_krw: null,
-    sale_stage: stage ? [stage] : [],
+    sale_stage: f.sale_stage ? [f.sale_stage] : [],
     household_min: null,
     preferences: [],
     confidence: 1,                    // 해석한 값이 아니라 사용자가 고른 값
-    raw: [sido, sigungu, stage].filter(Boolean).join(" "),
+    raw: [f.sido, f.sigungu, f.sale_stage].filter(Boolean).join(" "),
   };
 }
 
@@ -625,6 +635,11 @@ async function loadRegions() {
     el.selStage.replaceChildren(option("", "진행단계 전체"));
     (data.진행단계 || []).forEach((s) =>
       el.selStage.appendChild(option(s.이름, s.이름 + " (" + s.건수 + ")")));
+    // 전국 17개 시도가 아니라 분양 지구가 실재하는 곳만 나온다. 그 사실을
+    // 밝히지 않으면 "경기도가 없는데 고장인가"로 읽힌다 (실제로 그 질문이 나왔다).
+    el.regionHint.textContent =
+      "전원마을 분양 지구가 있는 " + data.시도.length + "개 시도만 표시됩니다";
+    el.regionHint.hidden = false;
     el.regionFilter.hidden = false;
   } catch (error) {
     // 지역 선택은 보조 수단 — 실패하면 조용히 숨긴 채로 두고 자연어 검색을 남긴다
@@ -632,10 +647,14 @@ async function loadRegions() {
 }
 
 async function runSearch() {
-  // 드롭다운에 선택이 있으면 그게 조건이다 (자연어와 상호 배타 — 아래 이벤트에서 보장)
-  const structured = structuredFromSelects();
+  // 세 갈래: 문장만 / 목록만 / 둘 다.
+  //   문장만  → 서버가 문장을 해석
+  //   목록만  → structured (해석 단계 자체를 건너뜀)
+  //   둘 다   → 문장을 해석하되 지역·단계는 고른 값으로 덮어씀 (filters)
+  const filters = selectedFilters();
   const query = el.query.value.trim();
-  if (!structured && !query) {
+  const structured = query ? null : structuredFromSelects();
+  if (!filters && !query) {
     el.queryError.hidden = false;
     el.query.setAttribute("aria-invalid", "true");
     el.query.focus();
@@ -660,6 +679,7 @@ async function runSearch() {
     const apiKey = readStoredKey();
     // structured면 서버가 문장 파싱을 건너뛴다 — LLM 키도 쓸 일이 없으므로 보내지 않는다
     const payload = structured ? { structured } : { query };
+    if (!structured && filters) payload.filters = filters;
     if (apiKey && !structured) payload.openai_api_key = apiKey;
 
     const response = await fetchWithTimeout("/api/search", {
@@ -726,31 +746,24 @@ el.query.addEventListener("input", () => {
   if (el.query.value.trim()) {
     el.queryError.hidden = true;
     el.query.removeAttribute("aria-invalid");
-    // 둘 다 값이 있으면 무엇이 조건인지 화면만 봐서는 알 수 없다 —
-    // 마지막에 손댄 쪽을 조건으로 삼고 다른 쪽은 비운다.
-    if (hasRegionSelection()) clearRegionSelects();
   }
 });
 
+// 드롭다운은 조건을 '고르는' 곳이지 검색을 '실행하는' 곳이 아니다.
+// 고를 때마다 검색이 나가면 시도→시군구→단계를 순서대로 좁히는 동안 세 번
+// 검색되고, 문장을 함께 쓰려던 사용자는 입력을 마치기도 전에 결과를 본다.
+// 실행은 '마을 찾기' 한 곳으로 모은다.
 el.selSido.addEventListener("change", () => {
   fillSigungu(el.selSido.value);
-  el.query.value = "";
   el.queryError.hidden = true;
   syncRegionReset();
-  runSearch();
 });
 
-el.selSigungu.addEventListener("change", () => {
-  el.query.value = "";
-  syncRegionReset();
-  runSearch();
-});
+el.selSigungu.addEventListener("change", syncRegionReset);
 
 el.selStage.addEventListener("change", () => {
-  el.query.value = "";
   el.queryError.hidden = true;
   syncRegionReset();
-  runSearch();
 });
 
 el.regionReset.addEventListener("click", () => {

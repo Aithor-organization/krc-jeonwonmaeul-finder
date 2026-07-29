@@ -92,9 +92,23 @@ class SearchTrace(BaseModel):
     scores: list[CardScore] = Field(default_factory=list)
 
 
+class SearchFilters(BaseModel):
+    """사용자가 화면 목록에서 직접 고른 조건.
+
+    문장과 함께 올 수 있다. 이때 문장은 그대로 해석하되 여기 담긴 항목만
+    해석 결과를 덮어쓴다 — 목록에서 고른 값은 이미 확정된 조건이라 추측으로
+    바꿀 이유가 없다. 예: 드롭다운 '구례군' + 문장 '조용하고 2억 이하'
+    → 지역은 구례군 확정, 예산·선호는 문장에서.
+    """
+    sido: str | None = None
+    sigungu: str | None = None
+    sale_stage: str | None = None
+
+
 class SearchRequest(BaseModel):
     query: str | None = None
     structured: ParsedQuery | None = None
+    filters: SearchFilters | None = None
     # 사용자가 화면에서 직접 입력하는 OpenAI 키(BYOK). 서버는 저장·로깅하지 않고
     # 해당 요청의 파싱에만 쓰고 버린다. 응답에도 절대 포함하지 않는다.
     openai_api_key: str | None = None

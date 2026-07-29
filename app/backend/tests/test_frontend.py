@@ -428,23 +428,75 @@ def test_region_dropdowns_exist_and_start_hidden():
         "시도를 고르기 전 시군구는 비활성이어야 한다"
 
 
-def test_dropdown_uses_structured_path_not_sentence_parsing():
-    """직접 고른 값을 문장으로 되돌려 파싱하면 추측이 한 단계 끼어든다."""
+def test_dropdown_only_uses_structured_path():
+    """문장 없이 목록만 고른 경우엔 파싱할 문장 자체가 없다."""
     app_js = client.get("/app.js").text
     assert "function structuredFromSelects" in app_js
-    assert "structured ? { structured } : { query }" in app_js, \
-        "선택이 있으면 query 대신 structured로 보내야 파서를 건너뛴다"
+    assert "const structured = query ? null : structuredFromSelects();" in app_js, \
+        "문장이 있으면 structured가 아니라 filters 경로여야 한다"
     assert "apiKey && !structured" in app_js, "구조화 경로에 LLM 키를 보낼 이유가 없다"
 
 
-def test_dropdown_and_free_text_are_mutually_exclusive():
-    """둘 다 값이 있으면 무엇이 조건인지 화면만 봐서는 알 수 없다."""
+def test_dropdown_does_not_search_on_change():
+    """드롭다운은 조건을 고르는 곳이지 검색을 실행하는 곳이 아니다.
+
+    시도→시군구→단계를 좁히는 동안 세 번 검색되고, 문장을 함께 쓰려던
+    사용자는 입력을 마치기도 전에 결과를 본다. 실행은 '마을 찾기' 한 곳으로.
+    """
     app_js = client.get("/app.js").text
-    assert "function clearRegionSelects" in app_js
-    assert "if (hasRegionSelection()) clearRegionSelects();" in app_js, \
-        "타이핑하면 드롭다운을 비워야 한다"
-    change = app_js.split('el.selSido.addEventListener("change"')[1].split("});")[0]
-    assert 'el.query.value = ""' in change, "드롭다운을 고르면 입력창을 비워야 한다"
+    for sel in ("selSido", "selSigungu", "selStage"):
+        block = app_js.split('el.' + sel + '.addEventListener("change"')[1].split("\nel.")[0]
+        assert "runSearch()" not in block, f"{sel}: 변경만으로 검색이 나간다"
+    # 실행 경로는 폼 제출(마을 찾기 / Enter)만 남아야 한다
+    assert 'el.form.addEventListener("submit"' in app_js
+
+
+def test_text_and_dropdown_combine_instead_of_clearing():
+    """둘 다 쓰면 지역·단계는 고른 값이 이기고 나머지 조건은 문장에서 읽는다."""
+    app_js = client.get("/app.js").text
+    assert "function selectedFilters" in app_js
+    assert "payload.filters = filters" in app_js
+    assert "if (hasRegionSelection()) clearRegionSelects();" not in app_js, \
+        "타이핑이 드롭다운을 지우면 결합이 불가능하다"
+    for sel in ("selSido", "selSigungu", "selStage"):
+        block = app_js.split('el.' + sel + '.addEventListener("change"')[1].split("\nel.")[0]
+        assert 'el.query.value = ""' not in block, f"{sel}: 선택이 입력창을 지운다"
+
+
+def test_region_hint_explains_missing_provinces():
+    """전국 17개 시도가 아니라 분양 지구가 있는 곳만 나온다 —
+    밝히지 않으면 '경기도가 없는데 고장인가'로 읽힌다 (실제로 나온 질문)."""
+    html = client.get("/").text
+    app_js = client.get("/app.js").text
+    assert 'id="region-hint"' in html
+    assert "전원마을 분양 지구가 있는 " in app_js
+    assert "data.시도.length" in app_js, "개수는 실제 응답에서 세야 한다"
+
+
+def test_filters_override_sentence_region():
+    """드롭다운 '구례군' + 문장 '조용한 곳' → 지역은 구례군, 선호는 문장에서."""
+    got = client.post("/api/search", json={
+        "query": "전남 조용한 마을",
+        "filters": {"sido": "충청남도", "sigungu": None, "sale_stage": "분양중"},
+    }).json()
+    parsed = got["query_parsed"]
+    assert parsed["region"]["sido"] == "충청남도", "고른 시도가 문장(전남)을 이겨야 한다"
+    assert parsed["sale_stage"] == ["분양중"]
+    assert any("우선 적용" in n for n in got["notes"]), "덮어썼다는 사실을 밝혀야 한다"
+    for card in got["top"]:
+        assert card["sido"] == "충청남도", card
+
+
+def test_filters_do_not_erase_other_sentence_conditions():
+    """지역만 덮어쓰고 예산·선호는 문장 해석 그대로 남아야 한다."""
+    got = client.post("/api/search", json={
+        "query": "예산 2억 이하 조용한 곳",
+        "filters": {"sido": "충청남도", "sigungu": None, "sale_stage": None},
+    }).json()
+    parsed = got["query_parsed"]
+    assert parsed["region"]["sido"] == "충청남도"
+    assert parsed["budget_max_krw"] or parsed["preferences"], \
+        "문장에서 읽은 조건이 전부 사라졌다"
 
 
 def test_region_load_failure_is_silent():
