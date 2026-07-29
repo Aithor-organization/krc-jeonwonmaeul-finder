@@ -37,6 +37,10 @@ class VillageCard(BaseModel):
     planned_households: int | None = None
     population: int | None = None
     vacant_houses: int | None = None
+    # 인구·빈집이 어느 마을 값인지. 분양 지구(예: 산북지구전원마을)와 이 마을
+    # (예: 산북2리)은 서로 다른 대상이라, 이름 없이 숫자만 붙이면 지구의 값으로
+    # 읽힌다 — 실제로 "빈집 0인데 왜 추천하냐"는 오독이 나왔다.
+    village_name: str | None = None
     score: float = 0.0
     confidence_grade: str = "D"
     reasons: list[str] = Field(default_factory=list)

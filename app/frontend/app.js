@@ -232,12 +232,27 @@ function droughtHtml(drought) {
  * 비어 있는 분양율 탓에 카드에서 가장 큰 글씨가 매번 "확인 불가"가 된다.
  * 고지는 유지하되 크기를 낮춰, 있는 값이 먼저 읽히게 한다.
  */
+/** 값이 없는 지표의 사유. 카드에서 바로 보여야 한다.
+ *
+ * 사유는 접힌 "데이터 한계"에도 적혀 있지만 펼치지 않으면 안 보인다. 실제로
+ * "분양율이 왜 다 확인 불가냐 — API를 못 가져오는 거냐"는 질문이 나왔다.
+ * 답은 '못 가져온다'가 아니라 '원천이 비어 있다'이고, 그 차이가 중요하다.
+ */
+const UNKNOWN_REASON = {
+  분양율: "원천 미입력 (167건 중 141건이 0)",
+  계획세대수: "원천 미입력",
+};
+
 function metricHtml(key, value, suffix) {
   const unknown = value == null;
+  const reason = unknown && UNKNOWN_REASON[key]
+    ? '<div class="metric-reason">' + esc(UNKNOWN_REASON[key]) + "</div>"
+    : "";
   return (
     '<div class="metric' + (unknown ? " is-unknown" : "") + '">' +
       '<div class="key">' + esc(key) + "</div>" +
       '<div class="value">' + esc(formatNumber(value, suffix)) + "</div>" +
+      reason +
     "</div>"
   );
 }
@@ -295,7 +310,12 @@ function cardHtml(card, drought, index, terms) {
       '<div class="metrics">' + metricsHtml(card) + "</div>" +
       // 인구·빈집이 둘 다 없으면 줄 자체를 숨긴다 ("확인 불가 · 확인 불가"는 정보가 아니라 노이즈)
       (card.population != null || card.vacant_houses != null
-        ? '<p class="village-summary">마을 현황 · 인구 ' + esc(formatNumber(card.population, "명")) + " · 빈집 " + esc(formatNumber(card.vacant_houses, "호")) + "</p>"
+        ? '<p class="village-summary">' +
+            "<strong>주변 마을" + (card.village_name ? " " + esc(card.village_name) : "") + "</strong> · " +
+            "인구 " + esc(formatNumber(card.population, "명")) +
+            " · 빈집 " + esc(formatNumber(card.vacant_houses, "호")) +
+            '<span class="village-note">이 지구가 아니라 같은 법정동 마을의 현황입니다 — 적합도 점수에 반영하지 않습니다.</span>' +
+          "</p>"
         : "") +
       (reasons ? '<ul class="reasons" aria-label="선정 이유">' + reasons + "</ul>" : "") +
       '<div class="score-row"><span>조건 적합도</span><strong>' + score + "%</strong></div>" +

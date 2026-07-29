@@ -375,6 +375,46 @@ def test_grade_badge_says_what_it_measures():
     assert "법정동코드" in app_js, "무엇으로 판정했는지 설명이 있어야 한다"
 
 
+# --- '확인 불가'와 마을 현황의 오독 방지 (2026-07-29) ---
+def test_unknown_metric_shows_why():
+    """'API를 못 가져오는 거냐'는 질문이 실제로 나왔다 — 답은 '원천이 비어 있다'다.
+
+    사유는 접힌 '데이터 한계'에도 있지만 펼치지 않으면 안 보인다.
+    """
+    app_js = client.get("/app.js").text
+    css = client.get("/results.css").text
+    assert "const UNKNOWN_REASON" in app_js
+    assert "원천 미입력" in app_js
+    assert "167건 중 141건이 0" in app_js, "실측 근거 숫자가 있어야 설득력이 생긴다"
+    assert ".metric-reason" in css
+
+
+def test_village_summary_names_its_subject():
+    """지구(산북지구전원마을)와 마을(산북2리)은 다른 대상이다.
+
+    이름 없이 숫자만 붙이면 지구의 값으로 읽혀 "빈집 0인데 왜 추천하냐"가 된다.
+    """
+    app_js = client.get("/app.js").text
+    css = client.get("/results.css").text
+    assert "주변 마을" in app_js
+    assert "card.village_name" in app_js
+    assert "적합도 점수에 반영하지 않습니다" in app_js
+    assert ".village-note" in css
+
+
+def test_card_carries_village_name():
+    """마을명이 응답에 없으면 화면이 어느 마을 값인지 밝힐 수 없다."""
+    got = client.post("/api/search", json={"structured": {
+        "region": {"sido": "충청남도", "sigungu": None},
+        "sale_stage": [], "preferences": [], "confidence": 1, "raw": "충청남도",
+    }}).json()
+    joined = [c for c in got["top"] if c.get("population") is not None
+              or c.get("vacant_houses") is not None]
+    assert joined, "마을 상세가 붙은 카드가 하나도 없으면 이 검사가 무의미하다"
+    for card in joined:
+        assert card.get("village_name"), f"{card['gu_name']}: 수치는 있는데 마을명이 없다"
+
+
 # --- 지역 드롭다운 (2026-07-29) ---
 def test_region_dropdowns_exist_and_start_hidden():
     """목록이 비었는데 드롭다운만 떠 있으면 고를 게 없는 빈 UI가 된다."""

@@ -208,6 +208,8 @@ class Orchestrator:
                 planned_households=_int(sale.get("계획세대수")),
                 population=_int(village.get("인구")) if village else None,
                 vacant_houses=_int(village.get("빈집수")) if village else None,
+                village_name=guards.inspect_output(str(village.get("마을명") or "")) or None
+                             if village else None,
                 score=score, confidence_grade=grade,
                 reasons=[guards.inspect_output(r) for r in reasons],
             ))

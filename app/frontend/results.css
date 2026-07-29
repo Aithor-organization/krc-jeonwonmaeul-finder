@@ -352,10 +352,33 @@ body.results-mode .results-section {
   letter-spacing: -0.01em;
 }
 
+/* "왜 확인 불가인지"는 접힌 데이터 한계에도 있지만 펼쳐야 보인다 —
+   질문이 실제로 나온 자리(카드)에서 바로 답한다. */
+.metric-reason {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
 .village-summary {
   margin: 14px 0 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+.village-summary strong {
+  color: var(--ink-950);
+  font-weight: 700;
+}
+
+/* 지구(산북지구전원마을)와 마을(산북2리)은 다른 대상이다. 숫자만 나란히 두면
+   지구의 값으로 읽혀 "빈집 0인데 왜 추천하냐"는 오독이 생긴다. */
+.village-note {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .reasons {
