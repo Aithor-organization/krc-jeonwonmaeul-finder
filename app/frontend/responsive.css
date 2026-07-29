@@ -174,9 +174,20 @@
     padding: 80px 0;
   }
 
+  /* 접힌 히어로: 모바일 헤더는 72px이라 데스크톱 여백(104px)이 과하다.
+     .hero/.hero-inner의 모바일 규칙보다 본 선택자가 구체적이라 여기서 다시 잡는다. */
+  body.results-mode .hero-inner {
+    padding: 88px 0 20px;
+  }
+
   .results-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .results-actions {
+    flex-wrap: wrap;
+    gap: 14px 18px;
   }
 
   .results-heading h2,

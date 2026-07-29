@@ -120,12 +120,23 @@
             <p class="section-kicker">검색 결과</p>
             <h2 id="results-title" tabindex="-1">조건에 맞는 전원마을</h2>
           </div>
-          <button id="back-btn" class="text-button" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="m18 15-6-6-6 6" />
-            </svg>
-            조건 다시 입력
-          </button>
+          <div class="results-actions">
+            <!-- 계산 내역은 카드 아래에 있어 스크롤하지 않으면 존재를 모른다.
+                 결과 머리에 진입점을 둬서 "근거를 볼 수 있다"는 사실 자체를 보이게 한다. -->
+            <button id="trace-open" class="text-button" type="button" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 3v18h18" />
+                <path d="m7 14 4-4 3 3 5-6" />
+              </svg>
+              계산 내역
+            </button>
+            <button id="back-btn" class="text-button" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m18 15-6-6-6 6" />
+              </svg>
+              조건 다시 입력
+            </button>
+          </div>
         </div>
 
         <p id="parsed-info" class="parsed-info" aria-live="polite"></p>

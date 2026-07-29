@@ -310,6 +310,35 @@ h3,
   font-weight: 700;
 }
 
+/* --- 검색 후: 히어로를 검색 바로 접는다 -------------------------------------
+   펼친 히어로는 880px라 결과가 항상 첫 화면 밖에 남는다. 그 간격을 스크롤
+   애니메이션으로만 메우면, 애니메이션이 어긋나는 순간 "검색했는데 화면이
+   그대로"인 상태가 된다(실측: 클릭 후 5초간 12px). 거리를 없애는 편이 확실하다.
+   "조건 다시 입력"을 누르면 원래 히어로로 돌아온다. */
+body.results-mode .hero {
+  height: auto;
+  min-height: 0;
+}
+
+body.results-mode .hero-inner {
+  padding: 104px 0 26px;      /* 상단은 absolute인 .site-header(88px) 자리 */
+}
+
+body.results-mode .hero-copy {
+  width: min(880px, 100%);
+  animation: none;            /* 재검색마다 페이드가 반복되면 산만하다 */
+}
+
+body.results-mode .mode-badge,
+body.results-mode .hero-eyebrow,
+body.results-mode .hero h1,
+body.results-mode .hero-description,
+body.results-mode .hero-proof,
+body.results-mode .examples,
+body.results-mode .scroll-cue {
+  display: none;
+}
+
 .search-form label {
   display: block;
   margin-bottom: 8px;

@@ -8,6 +8,7 @@ const el = {
   queryError: $("#query-error"),
   searchBtn: $("#search-btn"),
   backBtn: $("#back-btn"),
+  traceOpen: $("#trace-open"),
   results: $("#view-results"),
   resultsTitle: $("#results-title"),
   cards: $("#cards"),
@@ -120,7 +121,30 @@ function droughtStageClass(stage) {
 }
 
 function scrollToElement(target) {
-  target.scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth", block: "start" });
+  if (reduceMotion.matches) {
+    target.scrollIntoView({ behavior: "instant", block: "start" });
+    return;
+  }
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  // 부드러운 스크롤은 시작조차 하지 않는 경우가 있다(실측: 배포본에서 클릭 후 5초간 12px).
+  // 그러면 결과가 화면 밖에 남아 "검색했는데 아무 일도 안 일어난" 화면이 된다.
+  // 애니메이션에 맡기되, 도달했는지 확인하고 어긋나면 즉시 이동으로 마무리한다.
+  window.setTimeout(() => {
+    const offset = target.getBoundingClientRect().top;
+    if (Math.abs(offset) > 8) {
+      window.scrollTo({ top: window.scrollY + offset, behavior: "instant" });
+    }
+  }, 700);
+}
+
+/** 결과가 있으면 히어로를 검색 바로 접는다.
+ *
+ * 펼친 히어로는 880px라 결과가 항상 첫 화면 밖에 남는다. 그 간격을 스크롤
+ * 애니메이션 하나로 메우는 구조는 애니메이션이 어긋나는 순간 기능이 통째로
+ * 안 보인다 — 애초에 먼 거리를 만들지 않는 편이 확실하다.
+ */
+function setResultsMode(on) {
+  document.body.classList.toggle("results-mode", on);
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
@@ -169,6 +193,22 @@ function droughtHtml(drought) {
   );
 }
 
+/** 카드의 수치 한 칸.
+ *
+ * 값이 없을 때 "확인 불가"를 실제 수치와 같은 크기로 찍으면, 원천 데이터의 84%가
+ * 비어 있는 분양율 탓에 카드에서 가장 큰 글씨가 매번 "확인 불가"가 된다.
+ * 고지는 유지하되 크기를 낮춰, 있는 값이 먼저 읽히게 한다.
+ */
+function metricHtml(key, value, suffix) {
+  const unknown = value == null;
+  return (
+    '<div class="metric' + (unknown ? " is-unknown" : "") + '">' +
+      '<div class="key">' + esc(key) + "</div>" +
+      '<div class="value">' + esc(formatNumber(value, suffix)) + "</div>" +
+    "</div>"
+  );
+}
+
 function cardHtml(card, drought, index) {
   const grade = String(card.confidence_grade || "D").toUpperCase();
   const score = Math.round(clamp(Number(card.score) || 0, 0, 1) * 100);
@@ -191,8 +231,8 @@ function cardHtml(card, drought, index) {
         "</div>" +
       "</div>" +
       '<div class="metrics">' +
-        '<div class="metric"><div class="key">분양율</div><div class="value">' + esc(formatNumber(card.sale_rate, "%")) + "</div></div>" +
-        '<div class="metric"><div class="key">계획세대수</div><div class="value">' + esc(formatNumber(card.planned_households, "세대")) + "</div></div>" +
+        metricHtml("분양율", card.sale_rate, "%") +
+        metricHtml("계획세대수", card.planned_households, "세대") +
       "</div>" +
       // 인구·빈집이 둘 다 없으면 줄 자체를 숨긴다 ("확인 불가 · 확인 불가"는 정보가 아니라 노이즈)
       (card.population != null || card.vacant_houses != null
@@ -229,10 +269,17 @@ function renderNotes(notes) {
   if (!el.notes) return;
   const messages = Array.isArray(notes) ? notes.filter(Boolean) : [];
   // 안내는 '문제'가 아니므로 경고 패널과 분리해 조용한 메모로 표시한다.
+  //
+  // 접어 두되 건수는 항상 보인다. 펼친 채로 두면 조밀한 고지 3줄이 카드보다
+  // 먼저 나와 첫인상이 변명이 되고, 통째로 빼면 그 순간 정직성이 깨진다 —
+  // "몇 건 있다"를 항상 보이게 두는 편이 양쪽을 다 지킨다.
   el.notes.innerHTML = messages.length
-    ? '<div class="notes-panel">' +
-        messages.map((message) => "<p>" + esc(message) + "</p>").join("") +
-      "</div>"
+    ? '<details class="notes-panel">' +
+        "<summary>이 결과의 데이터 한계 " + messages.length + "건</summary>" +
+        '<div class="notes-body">' +
+          messages.map((message) => "<p>" + esc(message) + "</p>").join("") +
+        "</div>" +
+      "</details>"
     : "";
 }
 
@@ -242,8 +289,10 @@ function renderTrace(trace) {
   if (!el.trace) return;
   if (!trace || !Array.isArray(trace.funnel) || !trace.funnel.length) {
     el.trace.innerHTML = "";
+    if (el.traceOpen) el.traceOpen.hidden = true;
     return;
   }
+  if (el.traceOpen) el.traceOpen.hidden = false;
 
   const funnel = trace.funnel.map((step, i) => {
     const drop = step.dropped > 0
@@ -273,9 +322,19 @@ function renderTrace(trace) {
     );
   }).join("");
 
+  // 요약줄에 "몇 건에서 몇 건으로 좁혔는지"를 먼저 보인다 — 펼치기 전에도
+  // 이 패널이 무엇을 담고 있는지 알 수 있어야 열어볼 이유가 생긴다.
+  const first = trace.funnel[0];
+  const last = trace.funnel[trace.funnel.length - 1];
+  const span = first && last && first.count != null && last.count != null
+    ? '<span class="trace-summary-count">' +
+        esc(formatNumber(first.count, "건")) + " → " + esc(formatNumber(last.count, "건")) +
+      "</span>"
+    : "";
+
   el.trace.innerHTML = (
-    '<details class="trace-panel">' +
-      "<summary>이 결과가 나온 계산 보기</summary>" +
+    '<details class="trace-panel" id="trace-panel">' +
+      '<summary><span class="trace-summary-title">계산 내역 · 이 결과가 나온 과정</span>' + span + "</summary>" +
       '<div class="trace-body">' +
         '<dl class="trace-meta">' +
           "<dt>문장을 조건으로 바꾼 주체</dt><dd>" + esc(trace.parser) + "</dd>" +
@@ -376,7 +435,10 @@ async function runSearch() {
   el.parsedInfo.textContent = "";
   renderSkeleton();
   setLoading(true);
-  scrollToElement(el.results);
+  setResultsMode(true);
+  // 히어로가 접히면 결과는 이미 첫 화면 안에 들어온다. 여기서 결과로 스크롤하면
+  // 접힌 검색창까지 화면 위로 밀려나 조건을 고칠 수단이 사라진다 — 맨 위를 유지한다.
+  window.scrollTo({ top: 0, behavior: "instant" });
 
   try {
     const apiKey = readStoredKey();
@@ -453,8 +515,16 @@ document.querySelectorAll(".query-chip").forEach((chip) => {
 });
 
 el.backBtn.addEventListener("click", () => {
+  setResultsMode(false);          // 히어로를 다시 펼친다 (검색 화면으로 복귀)
   scrollToElement($("#search"));
   window.setTimeout(() => el.query.focus(), reduceMotion.matches ? 0 : 450);
+});
+
+el.traceOpen.addEventListener("click", () => {
+  const panel = $("#trace-panel");
+  if (!panel) return;
+  panel.open = true;
+  scrollToElement(panel);
 });
 
 el.cards.addEventListener("click", (event) => {
@@ -468,6 +538,7 @@ el.cards.addEventListener("click", (event) => {
   if (!actionButton) return;
   if (actionButton.dataset.action === "retry") runSearch();
   if (actionButton.dataset.action === "refine") {
+    setResultsMode(false);        // 조건을 고치려면 히어로의 입력창이 다시 필요하다
     scrollToElement($("#search"));
     window.setTimeout(() => el.query.focus(), reduceMotion.matches ? 0 : 450);
   }

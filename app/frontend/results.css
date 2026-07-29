@@ -11,6 +11,21 @@
   gap: 24px;
 }
 
+/* 결과 제목은 스크린리더 커서를 옮기려고 프로그램으로만 포커스한다(tabindex="-1").
+   탭 순서에 없어 사용자가 직접 포커스할 수 없는데, 전역 :focus-visible 아웃라인이
+   그대로 걸려 매 검색마다 제목이 주황 오류 상자처럼 보였다. */
+#results-title:focus,
+#results-title:focus-visible {
+  outline: none;
+}
+
+.results-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 18px;
+}
+
 .section-kicker {
   margin: 0 0 10px;
   color: var(--signal-500);
@@ -122,9 +137,9 @@
 .ai-status a:hover { color: var(--sand); }
 
 /* 데이터 성격 안내 — 경고(주황)와 달리 조용한 회색. 문제가 아니라 참고 정보다. */
+/* 접어 두되 건수는 항상 보인다 — 펼친 고지 3줄이 카드보다 먼저 나오면
+   첫인상이 변명이 되고, 통째로 빼면 정직성이 깨진다. */
 .notes-panel {
-  display: grid;
-  gap: 4px;
   margin: 12px 0 0;
   padding: 10px 14px;
   border-left: 3px solid var(--border);
@@ -133,6 +148,29 @@
   background: #f7f7f5;
   font-size: 12.5px;
   line-height: 1.6;
+}
+
+.notes-panel > summary {
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+  user-select: none;
+}
+
+.notes-panel > summary::-webkit-details-marker { display: none; }
+
+.notes-panel > summary::before {
+  content: "＋";
+  display: inline-block;
+  width: 1.2em;
+}
+
+.notes-panel[open] > summary::before { content: "－"; }
+
+.notes-body {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
 }
 
 .notes-panel p {
@@ -262,6 +300,16 @@
   font-family: var(--font-display);
   font-size: 23px;
   font-weight: 700;
+}
+
+/* 값이 없을 때 "확인 불가"를 실제 수치와 같은 크기로 찍으면, 원천의 84%가 비어
+   있는 분양율 탓에 카드에서 가장 큰 글씨가 매번 "확인 불가"가 된다.
+   고지는 그대로 두고 크기만 낮춰 있는 값이 먼저 읽히게 한다. */
+.metric.is-unknown .value {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .village-summary {
@@ -461,6 +509,10 @@
 }
 
 .trace-panel > summary {
+  display: flex;
+  flex-wrap: wrap;      /* 좁은 화면에서 건수 배지가 제목을 밀어내지 않게 */
+  align-items: center;
+  gap: 10px;
   padding: 16px 20px;
   color: var(--forest-700);
   font-size: 14px;
@@ -468,6 +520,18 @@
   cursor: pointer;
   list-style: none;
   user-select: none;
+}
+
+/* 펼치기 전에도 "몇 건에서 몇 건으로 좁혔는지"가 보여야 열어볼 이유가 생긴다. */
+.trace-summary-count {
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--paper-200, #f1f1ee);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .trace-panel > summary::-webkit-details-marker { display: none; }

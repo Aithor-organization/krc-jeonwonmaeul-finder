@@ -172,10 +172,16 @@ def test_trace_panel_is_wired():
 
 
 def test_trace_is_collapsed_by_default():
-    """기본 펼침이면 검색 흐름을 가린다 — details에 open이 없어야 한다."""
+    """기본 펼침이면 검색 흐름을 가린다 — details에 open이 없어야 한다.
+
+    속성이 늘어도 깨지지 않게 여는 태그를 뽑아서 open 유무만 본다.
+    """
+    import re
     app_js = client.get("/app.js").text
-    assert '<details class="trace-panel">' in app_js
-    assert '<details class="trace-panel" open' not in app_js
+    tags = re.findall(r"<details[^>]*trace-panel[^>]*>", app_js)
+    assert tags, "계산 내역 패널이 details로 렌더되지 않는다"
+    for tag in tags:
+        assert " open" not in tag, tag
 
 
 def test_trace_cleared_on_error():
@@ -233,6 +239,60 @@ def test_evidence_page_has_no_stale_sample_mode_claim():
     body = html.replace('<span class="mode-flag">sample-mode로 동작 중</span>', "")
     assert "현재는 sample-mode" not in body
     assert "sample-mode를 유지" not in body
+
+
+# --- 검색 결과 도달성 (2026-07-29) ---
+# 실측: 배포본에서 마을찾기를 눌러도 5초간 스크롤이 12px에 머물렀고, 첫 카드는
+# 뷰포트(1009px) 밖 1259px에 있었다. 기능은 전부 동작했지만 화면은 그대로였다.
+def test_results_collapse_the_hero():
+    """히어로가 880px라 결과가 항상 첫 화면 밖이다 — 검색 시 접어야 한다."""
+    app_js = client.get("/app.js").text
+    css = client.get("/style.css").text
+    assert "function setResultsMode" in app_js
+    assert "setResultsMode(true)" in app_js, "검색 시 히어로를 접어야 한다"
+    assert "setResultsMode(false)" in app_js, "조건 다시 입력하면 펼쳐야 한다"
+    assert "body.results-mode .hero" in css
+    assert "height: auto" in css.split("body.results-mode .hero")[1][:120]
+
+
+def test_scroll_has_arrival_fallback():
+    """부드러운 스크롤이 진행되지 않으면 결과가 화면 밖에 남는다 — 도달을 확인한다."""
+    app_js = client.get("/app.js").text
+    fn = app_js.split("function scrollToElement")[1].split("\nfunction ")[0]
+    assert "getBoundingClientRect" in fn, "도달 여부를 확인하지 않는다"
+    assert 'behavior: "instant"' in fn, "보정 이동까지 smooth면 같은 실패를 반복한다"
+
+
+def test_trace_is_reachable_from_results_heading():
+    """계산 내역은 카드 아래에 있어 스크롤 전에는 존재를 모른다 — 머리에 진입점을 둔다."""
+    html = client.get("/").text
+    app_js = client.get("/app.js").text
+    assert 'id="trace-open"' in html
+    assert "el.traceOpen.addEventListener" in app_js
+    assert "panel.open = true" in app_js, "버튼이 패널을 열지 않으면 이동만 하고 만다"
+    # 결과가 없을 때 버튼이 남아 있으면 눌러도 아무 일도 일어나지 않는다
+    assert "el.traceOpen.hidden = true" in app_js
+
+
+def test_notes_are_collapsed_but_counted():
+    """고지 3줄이 카드보다 먼저 나오면 첫인상이 변명이 된다 — 접되 건수는 보인다."""
+    app_js = client.get("/app.js").text
+    fn = app_js.split("function renderNotes")[1].split("\nfunction ")[0]
+    assert '<details class="notes-panel">' in fn
+    assert "messages.length" in fn.split("<summary>")[1][:80], "건수를 접힌 상태에서도 보여야 한다"
+
+
+def test_unknown_metric_is_visually_demoted():
+    """원천의 84%가 빈 분양율 탓에 카드 최대 글씨가 매번 '확인 불가'가 된다."""
+    app_js = client.get("/app.js").text
+    css = client.get("/results.css").text
+    assert "function metricHtml" in app_js
+    assert "is-unknown" in app_js and ".metric.is-unknown .value" in css
+    demoted = css.split(".metric.is-unknown .value")[1][:200]
+    base = css.split(".metric .value")[1][:200]
+    import re
+    size = lambda block: float(re.search(r"font-size:\s*([\d.]+)px", block).group(1))
+    assert size(demoted) < size(base), "확인 불가가 실제 수치보다 작아야 한다"
 
 
 def test_query_input_has_length_cap():
