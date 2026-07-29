@@ -305,6 +305,15 @@ def test_missing_price_is_disclosed_before_searching():
     assert ".search-limits" in css
 
 
+def test_placeholder_does_not_suggest_price():
+    """'분양가는 검색할 수 없습니다' 바로 위/아래에서 예산을 권하면 모순이다."""
+    import re
+    import intent
+    html = client.get("/").text
+    ph = re.search(r'id="query"[^>]*placeholder="([^"]+)"', html).group(1)
+    assert not intent.parse(ph).budget_max_krw, f"placeholder가 예산을 권한다: {ph}"
+
+
 def test_example_chips_only_suggest_workable_conditions():
     """서비스가 먼저 '2억이라고 쳐보세요'라고 해놓고 '그건 반영 안 됩니다'는 모순이다."""
     import re
