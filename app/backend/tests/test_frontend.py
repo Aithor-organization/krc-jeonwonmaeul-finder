@@ -295,6 +295,86 @@ def test_unknown_metric_is_visually_demoted():
     assert size(demoted) < size(base), "확인 불가가 실제 수치보다 작아야 한다"
 
 
+# --- 결과 화면 정보 위계 (2026-07-29) ---
+def test_results_headline_is_filled_with_real_numbers():
+    """'조건에 맞는 전원마을'은 어떤 검색에도 똑같이 붙어 46px를 쓰고도 알려주는 게 없었다."""
+    html = client.get("/").text
+    app_js = client.get("/app.js").text
+    assert 'id="results-lead"' in html
+    assert "function renderResultsHeading" in app_js
+    assert "renderResultsHeading(data.query_parsed, data.trace, results.length)" in app_js
+    # 헤드라인 자리에 정적 문구가 박혀 있으면 안 된다.
+    # (CTA 배너 카피 등 다른 섹션의 같은 문구는 무관하므로 h2만 본다)
+    import re
+    h2 = re.search(r'<h2 id="results-title"[^>]*>(.*?)</h2>', html, re.S).group(1)
+    assert "조건에 맞는 전원마을" not in h2, h2
+
+
+def test_headline_count_comes_from_funnel_not_card_count():
+    """카드 수만 세면 '상위 3건 표시' 제한에 걸린 값이라 조건 충족 건수와 다르다."""
+    app_js = client.get("/app.js").text
+    fn = app_js.split("function renderResultsHeading")[1].split("\n/**")[0]
+    assert "trace.funnel" in fn
+    assert "funnel.length - 2" in fn, "마지막 단계는 표시 제한이므로 그 직전이 충족 건수다"
+
+
+def test_empty_and_error_reset_the_headline():
+    """직전 검색의 '전라남도 3곳'이 0건 화면에 남으면 정면으로 어긋난다."""
+    app_js = client.get("/app.js").text
+    assert "function resetResultsHeading" in app_js
+    for fn_name in ("renderEmpty", "renderError"):
+        fn = app_js.split("function " + fn_name)[1].split("\nfunction ")[0]
+        assert "resetResultsHeading(" in fn, fn_name
+
+
+def test_tied_scores_are_disclosed():
+    """세 장이 전부 75%인데 01/02/03을 붙이면 없는 우열을 주장하게 된다."""
+    html = client.get("/").text
+    app_js = client.get("/app.js").text
+    assert 'id="tie-note"' in html
+    assert "function renderTieNote" in app_js
+    fn = app_js.split("function renderTieNote")[1].split("\nfunction ")[0]
+    assert "every((s) => s === scores[0])" in fn
+    assert "순위가 아니라 표시 순서" in fn
+
+
+def test_card_shows_the_score_formula():
+    """점수만 있으면 근거 없는 숫자로 읽힌다 — 계산 내역은 펼쳐야 보인다."""
+    app_js = client.get("/app.js").text
+    css = client.get("/results.css").text
+    assert "function scoreFormula" in app_js
+    assert "scoreFormula(terms)" in app_js
+    assert ".score-formula" in css
+    # 산식은 카드와 1:1로 짝지어야 한다 (gu_id 키 충돌로 틀린 식이 표시된 전례)
+    assert "scores[index] && scores[index].terms" in app_js
+
+
+def test_known_metrics_come_before_unknown_ones():
+    """분양율은 원천의 84%가 비어 고정 순서면 첫 칸이 매번 '확인 불가'다."""
+    app_js = client.get("/app.js").text
+    fn = app_js.split("function metricsHtml")[1].split("\n/**")[0]
+    assert "known.concat(unknown)" in fn
+
+
+def test_grade_badge_says_what_it_measures():
+    """A/B/C는 근거 품질이 아니라 마을현황이 붙은 정확도다 — 라벨이 달랐다.
+
+    주석에는 "왜 바꿨는지"가 옛 문구와 함께 적혀 있으므로 주석을 걷고 코드만 본다.
+    """
+    import re
+    app_js = client.get("/app.js").text
+    code = re.sub(r"/\*.*?\*/", "", app_js, flags=re.S)
+    code = re.sub(r"^\s*//.*$", "", code, flags=re.M)
+    # 옛 배지는 '근거 ' + 등급문자 + '등급</span>' 로 조립됐다 ("수치 근거 확인"
+    # 버튼은 정당한 문구이므로 배지 조립 패턴만 본다)
+    assert "등급</span>" not in code, "등급 배지에 'N등급' 문구가 남아 있다"
+    assert "esc(grade)" not in code, "배지가 여전히 등급 문자를 그대로 찍는다"
+    assert "const GRADE_TEXT" in app_js
+    for label in ("마을 상세 일치", "시군구 근사", "마을 상세 없음"):
+        assert label in app_js, label
+    assert "법정동코드" in app_js, "무엇으로 판정했는지 설명이 있어야 한다"
+
+
 # --- 지역 드롭다운 (2026-07-29) ---
 def test_region_dropdowns_exist_and_start_hidden():
     """목록이 비었는데 드롭다운만 떠 있으면 고를 게 없는 빈 UI가 된다."""

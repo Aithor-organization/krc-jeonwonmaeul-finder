@@ -11,6 +11,8 @@ const el = {
   traceOpen: $("#trace-open"),
   results: $("#view-results"),
   resultsTitle: $("#results-title"),
+  resultsLead: $("#results-lead"),
+  tieNote: $("#tie-note"),
   cards: $("#cards"),
   status: $("#status"),
   parsedInfo: $("#parsed-info"),
@@ -129,6 +131,24 @@ function gradeClass(grade) {
   return ["A", "B", "C", "D"].includes(normalized) ? "grade-" + normalized.toLowerCase() : "grade-d";
 }
 
+/** 등급 배지의 문구.
+ *
+ * "근거 A등급"이라고 쓰고 있었지만 A/B/C가 재는 것은 근거의 품질이 아니라
+ * **농촌마을현황이 이 지구에 얼마나 정확히 붙었는가**다(법정동코드 완전일치=A,
+ * 시군구만 일치=B, 못 붙임=C). 라벨과 실제 의미가 다르면 배지가 정보가 아니라
+ * 장식이 된다 — 재는 것을 그대로 쓴다.
+ */
+const GRADE_TEXT = {
+  A: { label: "마을 상세 일치", title: "법정동코드가 정확히 일치해 인구·빈집을 이 마을 값으로 표시합니다." },
+  B: { label: "시군구 근사", title: "법정동코드는 다르고 시군구만 같습니다 — 마을 상세는 참고값입니다." },
+  C: { label: "마을 상세 없음", title: "붙는 마을현황 레코드가 없어 인구·빈집을 표시하지 않습니다." },
+  D: { label: "마을 상세 없음", title: "붙는 마을현황 레코드가 없어 인구·빈집을 표시하지 않습니다." },
+};
+
+function gradeText(grade) {
+  return GRADE_TEXT[String(grade || "D").toUpperCase()] || GRADE_TEXT.D;
+}
+
 function droughtStageClass(stage) {
   return stage === "정상" ? "stage-normal" : "";
 }
@@ -222,8 +242,36 @@ function metricHtml(key, value, suffix) {
   );
 }
 
-function cardHtml(card, drought, index) {
+/** 지표 칸 정렬 — 값이 있는 것을 앞에 둔다.
+ *
+ * 분양율은 원천의 84%가 비어 있어 고정 순서로 두면 카드 첫 칸이 매번
+ * "확인 불가"가 된다. 있는 값이 먼저 읽혀야 카드가 정보로 보인다.
+ * 값이 둘 다 있으면 원래 순서(분양율 → 계획세대수)를 유지한다.
+ */
+function metricsHtml(card) {
+  const metrics = [
+    { key: "분양율", value: card.sale_rate, suffix: "%" },
+    { key: "계획세대수", value: card.planned_households, suffix: "세대" },
+  ];
+  const known = metrics.filter((m) => m.value != null);
+  const unknown = metrics.filter((m) => m.value == null);
+  return known.concat(unknown).map((m) => metricHtml(m.key, m.value, m.suffix)).join("");
+}
+
+/** 점수 옆 산식 요약 — "왜 75%인가"에 카드에서 바로 답한다.
+ *
+ * 계산 내역 패널에도 같은 내용이 있지만 그건 펼쳐야 보인다. 점수만 덩그러니
+ * 있으면 근거 없는 숫자로 읽히고, 이 서비스가 가장 피하려는 인상이 그것이다.
+ */
+function scoreFormula(terms) {
+  if (!Array.isArray(terms) || !terms.length) return "";
+  const parts = terms.map((t) => esc(t.label) + " " + esc(String(t.contribution)));
+  return '<p class="score-formula">' + parts.join(" + ") + "</p>";
+}
+
+function cardHtml(card, drought, index, terms) {
   const grade = String(card.confidence_grade || "D").toUpperCase();
+  const badge = gradeText(grade);
   const score = Math.round(clamp(Number(card.score) || 0, 0, 1) * 100);
   const titleId = "result-title-" + index;
   const reasons = Array.isArray(card.reasons)
@@ -240,13 +288,11 @@ function cardHtml(card, drought, index) {
         "</div>" +
         '<div class="badges">' +
           '<span class="badge stage">' + esc(card.sale_stage || "단계 확인 불가") + "</span>" +
-          '<span class="badge ' + gradeClass(grade) + '">근거 ' + esc(grade) + "등급</span>" +
+          '<span class="badge ' + gradeClass(grade) + '" title="' + esc(badge.title) + '">' +
+            esc(badge.label) + "</span>" +
         "</div>" +
       "</div>" +
-      '<div class="metrics">' +
-        metricHtml("분양율", card.sale_rate, "%") +
-        metricHtml("계획세대수", card.planned_households, "세대") +
-      "</div>" +
+      '<div class="metrics">' + metricsHtml(card) + "</div>" +
       // 인구·빈집이 둘 다 없으면 줄 자체를 숨긴다 ("확인 불가 · 확인 불가"는 정보가 아니라 노이즈)
       (card.population != null || card.vacant_houses != null
         ? '<p class="village-summary">마을 현황 · 인구 ' + esc(formatNumber(card.population, "명")) + " · 빈집 " + esc(formatNumber(card.vacant_houses, "호")) + "</p>"
@@ -256,12 +302,69 @@ function cardHtml(card, drought, index) {
       '<div class="score-bar" role="progressbar" aria-label="조건 적합도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + score + '">' +
         '<div class="score-fill" style="width:' + score + '%"></div>' +
       "</div>" +
+      scoreFormula(terms) +
       droughtHtml(drought && drought.sigungu === card.sigungu ? drought : null) +
       '<div class="card-actions">' +
         '<button class="evidence-button" type="button" data-gu="' + esc(card.gu_name) + '">' + icon("fileSearch") + "수치 근거 확인</button>" +
       "</div>" +
     "</article>"
   );
+}
+
+function resetResultsHeading(title) {
+  el.resultsTitle.textContent = title;
+  el.resultsLead.textContent = "";
+  if (el.tieNote) {
+    el.tieNote.textContent = "";
+    el.tieNote.hidden = true;
+  }
+}
+
+/** 결과 제목을 실제 정보로 채운다.
+ *
+ * "조건에 맞는 전원마을"은 어떤 검색에도 똑같이 붙는 문구라 46px를 쓰고도
+ * 알려주는 게 없었다. 정작 알아야 할 숫자(전국 몇 곳 중 몇 곳)는 그 아래
+ * 회색 한 줄에 묻혀 있었다 — 자리를 맞바꾼다.
+ *
+ * 숫자는 trace.funnel에서 가져온다. 카드 개수만 세면 "상위 3건 표시" 제한에
+ * 걸린 값이라 실제 조건 충족 건수와 다르다.
+ */
+function renderResultsHeading(parsed, trace, shown) {
+  const region = [parsed && parsed.region && parsed.region.sido,
+                  parsed && parsed.region && parsed.region.sigungu].filter(Boolean).join(" ");
+  el.resultsTitle.textContent = (region ? region + " " : "") + shown + "곳";
+
+  const funnel = (trace && Array.isArray(trace.funnel)) ? trace.funnel : [];
+  const total = funnel.length ? funnel[0].count : null;
+  // 마지막 단계는 "상위 N건 표시" 제한이므로 그 직전이 조건 충족 건수다
+  const matched = funnel.length >= 2 ? funnel[funnel.length - 2].count : null;
+
+  const bits = [];
+  if (total != null) bits.push("전국 " + formatNumber(total, "곳"));
+  if (matched != null) bits.push("조건 충족 " + formatNumber(matched, "곳"));
+  if (matched != null && matched > shown) bits.push("상위 " + shown + "곳 표시");
+  el.resultsLead.textContent = bits.join(" · ");
+
+  el.resultsTitle.setAttribute(
+    "aria-label",
+    shown + "곳을 찾았습니다. " + el.resultsLead.textContent +
+    ". 각 카드에서 사용한 데이터 근거를 확인할 수 있습니다.");
+}
+
+/** 표시된 카드의 점수가 전부 같으면 번호는 순위가 아니다.
+ *
+ * 실제로 "추천 01/02/03"이 붙은 세 장이 전부 75%인 경우가 흔하다(분양율이
+ * 비어 중립값이 들어가고 선호 조건이 없으면 진행단계만 남는다). 번호를 그대로
+ * 두면 없는 우열을 주장하는 셈이라, 동점이면 그 사실을 밝힌다.
+ */
+function renderTieNote(cards) {
+  if (!el.tieNote) return;
+  const scores = cards.map((c) => Math.round(clamp(Number(c.score) || 0, 0, 1) * 100));
+  const tied = scores.length > 1 && scores.every((s) => s === scores[0]);
+  el.tieNote.textContent = tied
+    ? "표시된 " + scores.length + "곳의 적합도가 " + scores[0] + "%로 같습니다 — 번호는 순위가 아니라 표시 순서입니다."
+    : "";
+  el.tieNote.hidden = !tied;
 }
 
 function renderWarnings(warnings) {
@@ -373,6 +476,8 @@ function renderTrace(trace) {
 }
 
 function renderEmpty(message) {
+  // 제목·부제가 동적이라 직전 검색의 "전라남도 3곳"이 남으면 0건 화면과 정면으로 어긋난다
+  resetResultsHeading("조건에 맞는 곳 없음");
   el.resultsTitle.setAttribute("aria-label", "조건에 맞는 전원마을을 찾지 못했습니다.");
   el.cards.innerHTML = (
     '<div class="empty-state">' +
@@ -389,6 +494,7 @@ function renderError(error) {
   const message = timedOut
     ? "응답 시간이 길어 검색을 중단했습니다. 잠시 후 다시 시도해 주세요."
     : "검색 서버에 연결하지 못했습니다. 서버 상태를 확인한 뒤 다시 시도해 주세요.";
+  resetResultsHeading("검색 실패");
   el.resultsTitle.setAttribute("aria-label", "검색을 완료하지 못했습니다.");
   el.status.className = "status error";
   el.status.textContent = message;
@@ -557,9 +663,14 @@ async function runSearch() {
     if (!results.length) {
       renderEmpty();
     } else {
-      el.cards.innerHTML = results.map((card, index) => cardHtml(card, data.drought_panel, index)).join("");
-      const countMessage = results.length + "곳을 찾았습니다. 각 카드에서 사용한 데이터 근거를 확인할 수 있습니다.";
-      el.resultsTitle.setAttribute("aria-label", countMessage);
+      // trace.scores는 카드와 1:1로 짝지어 오므로 인덱스로 산식을 붙인다
+      const scores = (data.trace && Array.isArray(data.trace.scores)) ? data.trace.scores : [];
+      el.cards.innerHTML = results
+        .map((card, index) => cardHtml(card, data.drought_panel, index,
+                                       scores[index] && scores[index].terms))
+        .join("");
+      renderResultsHeading(data.query_parsed, data.trace, results.length);
+      renderTieNote(results);
     }
     el.resultsTitle.focus({ preventScroll: true });
   } catch (error) {

@@ -136,7 +136,11 @@
         <div class="results-heading">
           <div>
             <p class="section-kicker">검색 결과</p>
-            <h2 id="results-title" tabindex="-1">조건에 맞는 전원마을</h2>
+            <!-- 제목·부제는 app.js가 실제 숫자로 채운다. 여기 적힌 값은 검색 전
+                 표시일 뿐이며, "조건에 맞는 전원마을"처럼 어떤 검색에도 똑같이
+                 붙는 문구를 결과 화면의 헤드라인으로 두지 않는다. -->
+            <h2 id="results-title" tabindex="-1">검색 결과</h2>
+            <p id="results-lead" class="results-lead"></p>
           </div>
           <div class="results-actions">
             <!-- 계산 내역은 카드 아래에 있어 스크롤하지 않으면 존재를 모른다.
@@ -160,6 +164,7 @@
         <p id="parsed-info" class="parsed-info" aria-live="polite"></p>
         <div id="status" class="status" role="status" aria-live="polite"></div>
         <div id="notes" aria-live="polite"></div>
+        <p id="tie-note" class="tie-note" role="status" hidden></p>
         <div id="cards" class="cards" aria-live="polite"></div>
         <div id="trace"></div>
       </div>

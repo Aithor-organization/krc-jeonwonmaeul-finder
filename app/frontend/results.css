@@ -25,6 +25,31 @@ body.results-mode .results-section {
   outline: none;
 }
 
+/* 제목이 "전라남도 구례군 3곳"처럼 길어질 수 있어 46px는 두 줄로 넘친다.
+   결과 화면의 헤드라인은 읽히는 게 목적이지 크기가 목적이 아니다. */
+.results-heading h2 {
+  font-size: 38px;
+}
+
+.results-lead {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 점수가 전부 같으면 번호는 순위가 아니다 — 그 사실을 카드 바로 위에서 밝힌다 */
+.tie-note {
+  margin: 16px 0 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--sand, #e0b84c);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  color: var(--ink-950);
+  background: #fdf8ec;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .results-actions {
   display: flex;
   flex-shrink: 0;
@@ -316,6 +341,15 @@ body.results-mode .results-section {
   font-family: var(--font-body);
   font-size: 15px;
   font-weight: 600;
+}
+
+/* 점수만 덩그러니 있으면 근거 없는 숫자로 읽힌다 — 카드에서 바로 산식을 보인다 */
+.score-formula {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .village-summary {
