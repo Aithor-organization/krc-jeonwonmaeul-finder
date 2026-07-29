@@ -330,6 +330,39 @@ body.results-mode .results-section {
 
 /* 이 칸이 무엇의 값인지. 분양율은 지구 단위인데 바로 아래 미입력 사유는
    전국 통계라, 표시가 없으면 한 칸 안에서 단위가 뒤바뀐 것처럼 읽힌다. */
+/* 분양율을 얼마나 믿을 수 있는가. 전에는 '수치 있음/없음' 둘뿐이라
+   우리가 아는 17건이 정말 모르는 124건과 같은 칸에 들어갔다. */
+.rate-tag {
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.rate-tag.is-confirmed { background: var(--forest-100); color: var(--forest-800); }
+.rate-tag.is-inferred  { background: var(--signal-100); color: var(--warning); }
+.rate-tag.is-held,
+.rate-tag.is-missing   { background: var(--paper); color: var(--muted); }
+
+/* 추정은 수치가 없어도 아는 것이 있다 — 회색으로 죽이면 '모름'과 같아진다 */
+.metric.is-unknown.is-inferred .value {
+  color: var(--warning);
+  font-size: 19px;
+}
+
+.rate-anomaly {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--signal-500);
+  background: var(--signal-100);
+  color: var(--ink-900);
+  font-size: 11.5px;
+  line-height: 1.5;
+  border-radius: 0 6px 6px 0;
+}
+
 .metric-scope {
   padding: 1px 5px;
   border-radius: 999px;

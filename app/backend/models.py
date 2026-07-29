@@ -38,6 +38,12 @@ class VillageCard(BaseModel):
     # '없음'과 '범위를 벗어남'은 화면에서 같은 "확인 불가"로 보이지만
     # 이유가 다르다 — 이유까지 같게 말하면 그건 사실이 아니다.
     sale_rate_out_of_range: float | None = None
+    # 확정 / 추정 / 보류 / 미상. 전에는 '수치 있음/없음' 둘뿐이라
+    # **우리가 아는 17건이 정말 모르는 124건과 같은 칸**에 들어갔다.
+    sale_rate_status: str = "미상"
+    # 단계와 수치가 어긋나는 조합 (분양예정인데 100% 등). 값은 그대로 두고
+    # 어긋난다는 사실만 알린다.
+    sale_rate_anomaly: str | None = None
     planned_households: int | None = None
     population: int | None = None
     vacant_houses: int | None = None

@@ -449,10 +449,17 @@ def test_card_shows_the_score_formula():
 
 
 def test_known_metrics_come_before_unknown_ones():
-    """분양율은 원천의 84%가 비어 고정 순서면 첫 칸이 매번 '확인 불가'다."""
+    """분양율은 원천의 84%가 비어 고정 순서면 첫 칸이 매번 '확인 불가'다.
+
+    정렬 기준이 2단에서 3단으로 늘었다 — 수치가 있는 것 → **추정(내용은 있음)**
+    → 정말 모르는 것. '추정'을 '미상'과 같이 뒤로 밀면 우리가 아는 17건이
+    다시 묻힌다.
+    """
     app_js = client.get("/app.js").text
     fn = app_js.split("function metricsHtml")[1].split("\n/**")[0]
-    assert "known.concat(unknown)" in fn
+    assert "const rank" in fn and '"추정"' in fn
+    # 값 있음(0) < 추정(1) < 미상(2) 순서가 코드에 그대로 있어야 한다
+    assert "m.value != null ? 0" in fn and "? 1 : 2" in fn
 
 
 def test_grade_badge_says_what_it_measures():

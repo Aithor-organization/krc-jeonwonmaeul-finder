@@ -273,7 +273,7 @@ function unknownRateReason(card) {
   // 못해 보류했다는 것을 그대로 적는다.
   const over = card.sale_rate_out_of_range;
   if (over != null) {
-    return "원천 기록은 " + esc(String(over)) + "%지만 100%를 넘어 표시를 보류했습니다";
+    return "원천 기록은 " + String(over) + "%지만 100%를 넘어 표시를 보류했습니다";
   }
   const stage = card.sale_stage;
   if (stage === "분양완료") return "이 지구는 수치 미입력이지만 분양완료 — 남은 자리 없음";
@@ -281,20 +281,46 @@ function unknownRateReason(card) {
   return UNKNOWN_REASON.분양율;
 }
 
-function metricHtml(key, value, suffix, reasonOverride) {
+/** 분양율을 얼마나 믿을 수 있는가 — 네 상태를 눈에 보이게 가른다.
+ *
+ * 🔴 전에는 둘뿐이었다: 수치가 있으면 표시, 없으면 "확인 불가". 그래서
+ * **우리가 아는 17건이 정말 모르는 124건과 똑같은 칸**에 들어갔다.
+ * 분양완료 지구는 수치가 없어도 남은 자리가 없다는 걸 알고, 그 판단을
+ * 점수(가용성 0)에는 이미 쓰면서 화면에서만 감추고 있었다.
+ *
+ * ⚠️ 그래도 '추정'을 숫자 100%로 적지 않는다. 100%가 분양예정 단계에도
+ * 12건 있어서 그 값의 의미 자체가 확실하지 않다. 아는 것은 "남은 자리 없음"
+ * 이라는 판정이지 "100%"라는 수치가 아니다.
+ */
+const RATE_STATUS = {
+  확정: { label: "원천 기록", cls: "is-confirmed" },
+  추정: { label: "단계로 추정", cls: "is-inferred" },
+  보류: { label: "값 보류", cls: "is-held" },
+  미상: { label: "기록 없음", cls: "is-missing" },
+};
+
+function metricHtml(key, value, suffix, reasonOverride, status) {
   const unknown = value == null;
   const text = unknown ? (reasonOverride || UNKNOWN_REASON[key]) : "";
   const line = text ? '<div class="metric-reason">' + esc(text) + "</div>" : "";
   const scope = METRIC_SCOPE[key] || "";
+  const badge = status && RATE_STATUS[status]
+    ? '<span class="rate-tag ' + RATE_STATUS[status].cls + '">' +
+        esc(RATE_STATUS[status].label) + "</span>"
+    : "";
+  // '추정'은 수치가 없지만 아는 게 있다 — 확인 불가로 적으면 거짓말이 된다.
+  const display = status === "추정" ? "남은 자리 없음" : formatNumber(value, suffix);
   return (
-    '<div class="metric' + (unknown ? " is-unknown" : "") + '">' +
+    '<div class="metric' + (unknown ? " is-unknown" : "") +
+        (status === "추정" ? " is-inferred" : "") + '">' +
       '<div class="key"' + (scope ? ' title="' + esc(scope) + '"' : "") + ">" +
         esc(key) +
         // 스코프는 툴팁만으로 두면 안 읽힌다 — 이 칸이 무엇의 값인지가
         // 카드에서 가장 자주 오해받는 지점이라 항상 보이게 적는다.
         (scope ? '<span class="metric-scope">이 지구 기준</span>' : "") +
+        badge +
       "</div>" +
-      '<div class="value">' + esc(formatNumber(value, suffix)) + "</div>" +
+      '<div class="value">' + esc(display) + "</div>" +
       line +
     "</div>"
   );
@@ -307,14 +333,23 @@ function metricHtml(key, value, suffix, reasonOverride) {
  * 값이 둘 다 있으면 원래 순서(분양율 → 계획세대수)를 유지한다.
  */
 function metricsHtml(card) {
+  const status = card.sale_rate_status || "미상";
   const metrics = [
-    { key: "분양율", value: card.sale_rate, suffix: "%", reason: unknownRateReason(card) },
+    { key: "분양율", value: card.sale_rate, suffix: "%",
+      reason: status === "추정"
+        // '추정'은 값 자리에 이미 판정이 들어가므로, 사유에는 그 판정의
+        // 근거를 적는다 (같은 말을 두 번 하지 않는다).
+        ? "원천 수치는 없지만 이미 입주가 끝난 단계입니다"
+        : unknownRateReason(card),
+      status },
     { key: "계획세대수", value: card.planned_households, suffix: "세대" },
   ];
-  const known = metrics.filter((m) => m.value != null);
-  const unknown = metrics.filter((m) => m.value == null);
-  return known.concat(unknown)
-    .map((m) => metricHtml(m.key, m.value, m.suffix, m.reason))
+  // '추정'은 값이 null이어도 화면에 내용이 있으므로 앞줄에 둔다
+  const rank = (m) => (m.value != null ? 0 : m.status === "추정" ? 1 : 2);
+  return metrics
+    .slice()
+    .sort((a, b) => rank(a) - rank(b))
+    .map((m) => metricHtml(m.key, m.value, m.suffix, m.reason, m.status))
     .join("");
 }
 
@@ -428,6 +463,12 @@ function cardHtml(card, drought, index, terms) {
         "</div>" +
       "</div>" +
       '<div class="metrics">' + metricsHtml(card) + "</div>" +
+      // 단계와 수치가 어긋나는 조합(분양예정인데 100% — 전국 12건).
+      // 값을 지우지도 고치지도 않고 어긋난다는 사실만 알린다.
+      (card.sale_rate_anomaly
+        ? '<p class="rate-anomaly">' + esc(card.sale_rate_anomaly) +
+          " — 실제 입주 가능 여부는 분양처 확인이 필요합니다.</p>"
+        : "") +
       // 값이 하나도 없으면 블록 자체를 내지 않는다 ("확인 불가 · 확인 불가"는 정보가 아니라 노이즈)
       villageBlockHtml(card) +
       (reasons ? '<ul class="reasons" aria-label="선정 이유">' + reasons + "</ul>" : "") +

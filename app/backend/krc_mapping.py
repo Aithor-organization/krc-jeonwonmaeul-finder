@@ -137,10 +137,56 @@ def out_of_range_rate(value: object) -> float | None:
     return v if v > 100 else None
 
 
+def rate_status(rate: float | None, over: float | None, stage: str | None) -> str:
+    """분양율을 얼마나 믿을 수 있는가 — 네 상태로 가른다.
+
+    🔴 전에는 둘뿐이었다: 수치가 있으면 표시, 없으면 "확인 불가". 그래서
+    **우리가 아는 17건이 정말 모르는 124건과 같은 칸에 들어갔다.**
+    분양완료(=이미 입주) 지구는 수치가 없어도 남은 자리가 없다는 걸 알고,
+    그 판단을 점수(가용성 0)에는 이미 쓰고 있으면서 화면에서만 감췄다.
+
+    실측 근거 (167건 전수):
+      · 확정 25건 — 원천에 0<값≤100
+      · 추정 17건 — 건축완료후 입주단계인데 미입력. 이 단계 23건의 값 분포는
+        {0: 17, 100: 6}으로 **100이 아닌 값이 하나도 없다** → 반증 사례 없음
+      · 보류  1건 — 150% (남도)
+      · 미상 124건
+
+    ⚠️ 그래도 '추정'을 숫자 100%로 적지는 않는다. 100%라는 값이 분양예정
+    단계에도 12건 있어서(집을 짓기 전인데) **100의 의미 자체가 확실하지 않다**.
+    아는 것은 "남은 자리 없음"이라는 판정이지 "100%"라는 수치가 아니다.
+    """
+    if rate is not None:
+        return "확정"
+    if over is not None:
+        return "보류"
+    if stage == "분양완료":
+        return "추정"
+    return "미상"
+
+
+def rate_anomaly(rate: float | None, stage: str | None) -> str | None:
+    """단계와 수치가 서로 어긋나는 조합. 값은 그대로 두되 사실을 알린다.
+
+    분양예정(준비/기반조성/주택건축 준비)인데 분양율 100%가 12건.
+    집을 짓기도 전에 완판일 수는 있지만(사전 예약), 그렇다고 조용히 넘기면
+    사용자는 이 100%를 '입주 가능'으로 읽는다. 지어내지도, 지우지도 않고
+    **어긋난다는 사실만** 적는다.
+    """
+    if rate == 100 and stage == "분양예정":
+        return "아직 분양예정 단계인데 원천에는 100%로 기록돼 있습니다"
+    return None
+
+
 def map_sale_item(raw: dict) -> dict:
     """전원마을 분양정보 1건 → 내부 한글 스키마 (샘플 데이터와 동일 키)."""
+    rate = map_sale_rate(raw.get("bndeLttotHscntPer"))
+    over = out_of_range_rate(raw.get("bndeLttotHscntPer"))
+    stage = map_stage(raw.get("progrsStep"))
     return {
-        "분양율_범위초과": out_of_range_rate(raw.get("bndeLttotHscntPer")),
+        "분양율_상태": rate_status(rate, over, stage),
+        "분양율_이상": rate_anomaly(rate, stage),
+        "분양율_범위초과": over,
         "gu_id": str(raw.get("inbpnCode") or ""),
         "지구명": str(raw.get("zoneName") or ""),
         "시도명": map_sido(raw.get("sidoNm")),
@@ -148,8 +194,8 @@ def map_sale_item(raw: dict) -> dict:
         "읍면동": raw.get("emdNm"),
         "법정동코드": str(raw.get("legalCode")) if raw.get("legalCode") is not None else None,
         "계획세대수": map_households(raw.get("planHscnt")),
-        "진행단계": map_stage(raw.get("progrsStep")),
-        "분양율": map_sale_rate(raw.get("bndeLttotHscntPer")),
+        "진행단계": stage,
+        "분양율": rate,
     }
 
 

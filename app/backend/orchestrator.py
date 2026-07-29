@@ -5,6 +5,7 @@ import config
 import evidence as evidence_mod
 import guards
 import intent
+import krc_mapping
 import llm_intent
 import scoring
 from clients import KrcDataClient
@@ -252,6 +253,13 @@ class Orchestrator:
                 sale_stage=sale.get("진행단계"),
                 sale_rate=_num(sale.get("분양율")),
                 sale_rate_out_of_range=_num(sale.get("분양율_범위초과")),
+                # 샘플 데이터에는 상태 필드가 없을 수 있어 그 자리에서 다시 판정한다
+                # (오프라인 모드가 조용히 전부 '미상'이 되는 것을 막는다).
+                sale_rate_status=sale.get("분양율_상태") or krc_mapping.rate_status(
+                    _num(sale.get("분양율")), _num(sale.get("분양율_범위초과")),
+                    sale.get("진행단계")),
+                sale_rate_anomaly=sale.get("분양율_이상") or krc_mapping.rate_anomaly(
+                    _num(sale.get("분양율")), sale.get("진행단계")),
                 planned_households=_int(sale.get("계획세대수")),
                 population=_int(village.get("인구")) if village else None,
                 vacant_houses=_int(village.get("빈집수")) if village else None,

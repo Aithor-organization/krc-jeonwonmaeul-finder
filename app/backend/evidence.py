@@ -18,6 +18,11 @@ _BINDINGS: list[tuple[str, str, str, Callable[[VillageCard], str]]] = [
      lambda c: f"진행단계 {c.sale_stage}"),
     ("sale_rate", config.API_SALE, "분양율",
      lambda c: f"분양율 {c.sale_rate}%"),
+    # '추정'은 수치가 아니라 판단이다. 그래서 근거의 field에 **무엇으로부터
+    # 추정했는지**를 적는다 — 진행단계다. 판단을 원천 수치처럼 보이게 두면
+    # 그게 곧 지어낸 근거가 된다.
+    ("sale_rate_status", config.API_SALE, "진행단계 → 분양율 신뢰 상태",
+     lambda c: f"분양율 상태 {c.sale_rate_status}"),
     ("planned_households", config.API_SALE, "계획세대수",
      lambda c: f"계획세대수 {c.planned_households}"),
     ("population", config.API_VILLAGE, "인구",
