@@ -180,6 +180,15 @@
     padding: 88px 0 20px;
   }
 
+  body.results-mode .results-section {
+    padding-top: 32px;
+  }
+
+  /* 결과 머리가 세로로 쌓이는 폭에서는 제목이 커서 카드를 화면 밖으로 민다 */
+  body.results-mode .results-heading h2 {
+    font-size: 28px;
+  }
+
   .results-heading {
     align-items: flex-start;
     flex-direction: column;

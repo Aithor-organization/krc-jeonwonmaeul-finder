@@ -4,6 +4,12 @@
   scroll-margin-top: 24px;
 }
 
+/* 96px 상단 여백은 전면 히어로에서 넘어올 때를 위한 것이다. 히어로가 검색 바로
+   접힌 상태에서는 그 여백이 카드를 첫 화면 밖으로 다시 밀어낸다. */
+body.results-mode .results-section {
+  padding-top: 44px;
+}
+
 .results-heading {
   display: flex;
   align-items: end;
