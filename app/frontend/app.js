@@ -301,6 +301,81 @@ function scoreFormula(terms) {
   return '<p class="score-formula">' + parts.join(" + ") + "</p>";
 }
 
+/** 마을 현황 블록 — 인구·고령화율·빈집 + 마을 소개.
+ *
+ * 전에는 "인구 131명 · 빈집 0호" 한 줄이 전부였다. 마을현황 API는 32개 필드를
+ * 주는데 인덱스가 8개만 싣고 있었고, 그중 연령 16칸은 더해서 인구 하나로
+ * 뭉갠 뒤 버렸다 — 그래서 봉산(61명 중 55명이 65세 이상)과 교원4리(505명 중 5%)가
+ * 화면에서 똑같이 "인구 N명"으로 보였다. 귀농을 준비하는 사람에게 그 둘은
+ * 완전히 다른 마을이다.
+ *
+ * 이 블록의 값은 전부 마을 것이지 지구 것이 아니다 — 그 경계를 매번 적는다.
+ */
+function villageBlockHtml(card) {
+  const stats = [];
+  if (card.population != null) stats.push("인구 " + esc(formatNumber(card.population, "명")));
+  if (card.elderly_ratio != null) {
+    const detail = card.elderly_count != null
+      ? card.population + "명 중 " + card.elderly_count + "명"
+      : "";
+    stats.push(
+      '<span class="elderly" title="' + esc(detail) + '">65세 이상 ' +
+      esc(String(card.elderly_ratio)) + "%</span>"
+    );
+  }
+  if (card.vacant_houses != null) stats.push("빈집 " + esc(formatNumber(card.vacant_houses, "호")));
+  // 슬레이트는 값이 있을 때만 싣는다 — 0이 '없음'인지 '미조사'인지 원천에서
+  // 구분되지 않아, 91곳의 0을 "석면 없음"으로 보이면 근거 없는 안심이 된다.
+  if (card.slate_houses) stats.push("슬레이트 주택 " + esc(formatNumber(card.slate_houses, "채")));
+
+  const resources = card.village_resources && typeof card.village_resources === "object"
+    ? Object.entries(card.village_resources).filter(([, list]) => Array.isArray(list) && list.length)
+    : [];
+
+  if (!stats.length && !card.village_note && !resources.length) return "";
+
+  const head = stats.length
+    ? '<p class="village-summary">' +
+        "<strong>주변 마을" + (card.village_name ? " " + esc(card.village_name) : "") + "</strong> · " +
+        stats.join(" · ") +
+        '<span class="village-note">이 지구가 아니라 같은 법정동 마을의 현황입니다 — 적합도 점수에 반영하지 않습니다.</span>' +
+      "</p>"
+    : "";
+
+  // 긴 소개글은 접어 둔다. 잘라내는 게 아니라 접는 것이라 원문은 그대로 있다 —
+  // 한 카드의 소개글이 길다고 나머지 카드 아래가 빈 공간이 되면 안 된다.
+  const LONG = 150;
+  const note = card.village_note
+    ? '<figure class="village-desc' + (card.village_note.length > LONG ? " is-long" : "") + '">' +
+        "<blockquote>" + esc(card.village_note) +
+          (card.village_note_truncated ? '<span class="clip">… (원문 일부)</span>' : "") +
+        "</blockquote>" +
+        (card.village_note.length > LONG
+          ? '<button class="desc-toggle" type="button" aria-expanded="false">더 보기</button>'
+          : "") +
+        "<figcaption>농촌마을현황 " + esc(card.village_name || "") +
+          " 소개 원문 · villDescription</figcaption>" +
+      "</figure>"
+    : "";
+
+  // 자원은 127곳 중 17곳만 등록돼 있다. 그래서 있는 곳에만 붙이고 점수에는
+  // 넣지 않는다 — 13%만 판정할 수 있는 조건을 점수화하면 나머지 110곳이
+  // "자원이 없는 마을"로 깎인다. 미등록과 부재는 다르다.
+  const res = resources.length
+    ? '<div class="village-res">' +
+        resources.map(([group, list]) =>
+          '<div class="res-group">' +
+            '<span class="res-label">' + esc(group) + "</span>" +
+            "<ul>" + list.map((t) => "<li>" + esc(t) + "</li>").join("") + "</ul>" +
+          "</div>").join("") +
+        '<p class="res-source">한국농어촌공사 마을 자원정보 원문 · resourceVill' +
+        " <span>등록된 마을에만 표시하며 적합도 점수에는 넣지 않습니다.</span></p>" +
+      "</div>"
+    : "";
+
+  return head + note + res;
+}
+
 function cardHtml(card, drought, index, terms) {
   const grade = String(card.confidence_grade || "D").toUpperCase();
   const badge = gradeText(grade);
@@ -325,15 +400,8 @@ function cardHtml(card, drought, index, terms) {
         "</div>" +
       "</div>" +
       '<div class="metrics">' + metricsHtml(card) + "</div>" +
-      // 인구·빈집이 둘 다 없으면 줄 자체를 숨긴다 ("확인 불가 · 확인 불가"는 정보가 아니라 노이즈)
-      (card.population != null || card.vacant_houses != null
-        ? '<p class="village-summary">' +
-            "<strong>주변 마을" + (card.village_name ? " " + esc(card.village_name) : "") + "</strong> · " +
-            "인구 " + esc(formatNumber(card.population, "명")) +
-            " · 빈집 " + esc(formatNumber(card.vacant_houses, "호")) +
-            '<span class="village-note">이 지구가 아니라 같은 법정동 마을의 현황입니다 — 적합도 점수에 반영하지 않습니다.</span>' +
-          "</p>"
-        : "") +
+      // 값이 하나도 없으면 블록 자체를 내지 않는다 ("확인 불가 · 확인 불가"는 정보가 아니라 노이즈)
+      villageBlockHtml(card) +
       (reasons ? '<ul class="reasons" aria-label="선정 이유">' + reasons + "</ul>" : "") +
       '<div class="score-row"><span>조건 적합도</span><strong>' + score + "%</strong></div>" +
       '<div class="score-bar" role="progressbar" aria-label="조건 적합도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + score + '">' +
@@ -855,6 +923,18 @@ el.cards.addEventListener("click", (event) => {
   if (evidenceButton) {
     openEvidence(evidenceButton.dataset.gu || "선택한 마을",
                  lastCards[Number(evidenceButton.dataset.index)]);
+    return;
+  }
+
+  // 소개글 접기/펼치기 — 마을마다 길이가 크게 달라(최장 400자) 그대로 두면
+  // 한 카드가 나머지를 밀어내고 짧은 카드 아래에 빈 공간이 크게 남는다.
+  // 자르는 대신 접는다 — 원문은 클릭 한 번이면 전부 보인다.
+  const descToggle = event.target.closest(".desc-toggle");
+  if (descToggle) {
+    const figure = descToggle.closest(".village-desc");
+    const open = figure.classList.toggle("is-open");
+    descToggle.textContent = open ? "접기" : "더 보기";
+    descToggle.setAttribute("aria-expanded", String(open));
     return;
   }
 

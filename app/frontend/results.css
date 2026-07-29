@@ -381,6 +381,131 @@ body.results-mode .results-section {
   line-height: 1.45;
 }
 
+/* 고령화율은 이 블록에서 가장 결정적인 값이라 다른 항목과 같은 무게로 두면
+   묻힌다. 90%와 5%가 같은 회색으로 지나가면 안 읽힌다. */
+.elderly {
+  color: var(--ink-950);
+  font-weight: 650;
+  border-bottom: 1px dotted var(--border);
+  cursor: help;
+}
+
+/* 마을 소개 원문. 인용 형식을 쓰는 이유는 이것이 우리가 쓴 문장이 아니라
+   원천 API가 준 텍스트라는 것을 형태로 구분하기 위해서다. */
+.village-desc {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--forest-100);
+  background: var(--paper);
+  border-radius: 0 8px 8px 0;
+}
+
+.village-desc blockquote {
+  margin: 0;
+  color: var(--ink-900);
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+/* 긴 소개글은 5줄까지만 펼쳐 둔다. 잘라내는 게 아니라 접는 것이라
+   "더 보기"를 누르면 원문이 그대로 나온다. */
+.village-desc.is-long blockquote {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.village-desc.is-long.is-open blockquote {
+  display: block;
+  overflow: visible;
+}
+
+.desc-toggle {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--forest-700);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.desc-toggle:hover {
+  color: var(--forest-800);
+}
+
+.village-desc .clip {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.village-desc figcaption {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* 마을 자원정보 — 127곳 중 17곳만 등록돼 있어 대부분의 카드에는 나오지 않는다.
+   나올 때는 그 마을에서 얻을 수 있는 가장 구체적인 정보(농산물·특산물·경관)다. */
+.village-res {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.res-group {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.res-group + .res-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.res-label {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--forest-100);
+  color: var(--forest-800);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.res-group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  color: var(--ink-900);
+  font-size: 12.5px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.res-source {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.res-source span {
+  display: block;
+}
+
 .reasons {
   display: grid;
   gap: 6px;

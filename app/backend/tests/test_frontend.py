@@ -51,9 +51,19 @@ def test_mode_flag_is_synced_by_script_not_hardcoded():
 
 
 def test_village_summary_is_conditional():
-    """인구·빈집이 모두 없으면 마을현황 줄을 그리지 않는다."""
+    """표시할 값이 하나도 없으면 마을현황 블록을 그리지 않는다.
+
+    "확인 불가 · 확인 불가"만 늘어선 줄은 정보가 아니라 노이즈다.
+    조건은 villageBlockHtml 안의 이른 반환이 담당한다.
+    """
     app_js = client.get("/app.js").text
-    assert "card.population != null || card.vacant_houses != null" in app_js
+    body = app_js.split("function villageBlockHtml", 1)
+    assert len(body) == 2, "villageBlockHtml이 없다"
+    guard = body[1].split("return", 1)[0]
+    # 블록이 다루는 세 갈래(수치·소개글·자원)가 모두 이른 반환 조건에 있어야 한다.
+    # 하나라도 빠지면 그 값만 있는 카드에서 정보가 조용히 사라진다.
+    for source in ("stats.length", "village_note", "resources.length"):
+        assert source in guard, f"{source}가 이른 반환 조건에 없다"
 
 
 def test_notes_container_exists():

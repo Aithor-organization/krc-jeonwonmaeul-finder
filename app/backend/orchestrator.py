@@ -33,6 +33,22 @@ def _int(v):
     return int(n) if n is not None else None
 
 
+def _clean_resources(raw) -> dict[str, list[str]] | None:
+    """자원 원문도 다른 값과 같은 출력 가드를 태운다.
+
+    원천 API가 준 자유 텍스트가 그대로 화면으로 나가는 자리라, 소개글과 마찬가지로
+    가드를 거치지 않으면 여기가 유일한 구멍이 된다.
+    """
+    if not isinstance(raw, dict):
+        return None
+    out = {
+        group: [t for t in (guards.inspect_output(str(x)) for x in items) if t]
+        for group, items in raw.items() if isinstance(items, list)
+    }
+    out = {g: v for g, v in out.items() if v}
+    return out or None
+
+
 # 지구는 뒤로 가지 않는다 — 중복 레코드 중 더 진행된 쪽이 최신 상태다
 _STAGE_ORDER = {"분양예정": 0, "분양중": 1, "분양완료": 2}
 
@@ -238,6 +254,15 @@ class Orchestrator:
                 planned_households=_int(sale.get("계획세대수")),
                 population=_int(village.get("인구")) if village else None,
                 vacant_houses=_int(village.get("빈집수")) if village else None,
+                elderly_count=_int(village.get("65세이상")) if village else None,
+                elderly_ratio=_int(village.get("고령화율")) if village else None,
+                slate_houses=_int(village.get("슬레이트주택")) if village else None,
+                # 소개글은 원천 API가 준 자유 텍스트다 — 화면으로 나가기 전에
+                # 다른 값과 똑같이 출력 가드를 태운다.
+                village_note=guards.inspect_output(str(village.get("마을소개") or "")) or None
+                             if village else None,
+                village_note_truncated=bool(village.get("마을소개_잘림")) if village else False,
+                village_resources=_clean_resources(village.get("자원목록")) if village else None,
                 village_name=guards.inspect_output(str(village.get("마을명") or "")) or None
                              if village else None,
                 score=score, confidence_grade=grade,

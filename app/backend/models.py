@@ -37,6 +37,17 @@ class VillageCard(BaseModel):
     planned_households: int | None = None
     population: int | None = None
     vacant_houses: int | None = None
+    # 연령 16칸을 더해 인구 하나로 뭉개던 것을 되살린 값. 같은 "인구 61명"이라도
+    # 그중 55명이 65세 이상이면 완전히 다른 마을이다.
+    elderly_count: int | None = None
+    elderly_ratio: int | None = None
+    slate_houses: int | None = None      # 값이 있을 때만 (0=미조사 구분 불가)
+    village_note: str | None = None      # 원천 마을 소개글 (선호 점수에는 미반영)
+    village_note_truncated: bool = False
+    # 마을 자원정보(resourceVill). 127곳 중 17곳만 등록돼 있어 **점수에는 넣지
+    # 않는다** — 13%만 판정 가능한 조건을 점수화하면, 자원이 등록되지 않은
+    # 나머지 110곳이 "자원이 없는 마을"로 깎인다. 미등록과 부재는 다르다.
+    village_resources: dict[str, list[str]] | None = None
     # 인구·빈집이 어느 마을 값인지. 분양 지구(예: 산북지구전원마을)와 이 마을
     # (예: 산북2리)은 서로 다른 대상이라, 이름 없이 숫자만 붙이면 지구의 값으로
     # 읽힌다 — 실제로 "빈집 0인데 왜 추천하냐"는 오독이 나왔다.
