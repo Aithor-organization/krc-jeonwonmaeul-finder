@@ -477,6 +477,29 @@ body.results-mode .results-section {
   line-height: 1.45;
 }
 
+/* 조사돼서 0인 것과 조사가 안 된 것을 같은 회색으로 두면 구분되지 않는다 */
+.stat-unknown {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* 마을이 안 붙은 카드. 비어 있다는 사실보다 왜 비었는지가 정보다. */
+.village-missing {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--border);
+  background: var(--paper);
+  border-radius: 0 8px 8px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.village-missing strong {
+  color: var(--ink-950);
+}
+
 /* 고령화율은 이 블록에서 가장 결정적인 값이라 다른 항목과 같은 무게로 두면
    묻힌다. 90%와 5%가 같은 회색으로 지나가면 안 읽힌다. */
 .elderly {

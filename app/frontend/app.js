@@ -387,11 +387,21 @@ function villageBlockHtml(card) {
       esc(String(card.elderly_ratio)) + "%</span>"
     );
   }
-  // 빈집은 **1호 이상일 때만** 싣는다.
-  // 실측: 127곳 중 65곳(51%)이 0이다. 절반이 같은 값인 항목을 카드마다 찍으면
-  // 마을을 구분해 주지 못하면서 자리만 차지한다. 0이 아닌 곳에서는 여전히
-  // 정보다(빈집 20호인 마을이 2곳 있다).
-  if (card.vacant_houses) stats.push("빈집 " + esc(formatNumber(card.vacant_houses, "호")));
+  // 빈집은 **세 상태를 구분해서** 적는다.
+  //
+  // 🔴 직전 판은 "0은 변별력이 없다"며 아예 숨겼다. 점수에서 빼는 판단은
+  // 맞았지만(127곳 중 65곳이 0이라 순위를 못 가른다) **화면에서 침묵시킨 것은
+  // 틀렸다** — 조사돼서 0인 곳과 아예 조사가 안 된 곳이 똑같이 안 보였다.
+  // "여기 빈집이 있는 곳인지 확실하냐"는 질문이 바로 여기서 나왔다.
+  // 모르는 것을 모른다고 적는 게 이 서비스의 전부인데, 아는 것까지 지웠다.
+  if (card.vacant_houses) {
+    stats.push("빈집 " + esc(formatNumber(card.vacant_houses, "호")));
+  } else if (card.vacant_houses === 0) {
+    stats.push("빈집 없음");
+  } else if (card.village_name) {
+    // 마을은 붙었는데 빈집만 비어 있는 경우 (마을 자체가 안 붙으면 아래 안내가 담당)
+    stats.push('<span class="stat-unknown">빈집 미조사</span>');
+  }
   // 🔴 슬레이트 주택은 카드에서 뺐다. 석면 우려 신호로 넣었지만 "2채"라는
   // 숫자만으로는 그게 많은지 적은지 알 수 없고(총주택 대비 중앙값 17%),
   // 값이 있는 곳도 36/127뿐이라 대부분의 카드에서 침묵한다. 무엇보다
@@ -404,7 +414,20 @@ function villageBlockHtml(card) {
   const resources = groupsOf(card.village_resources);
   const resourceDetail = groupsOf(card.village_resources_detail);
 
-  if (!stats.length && !card.village_note && !resources.length && !resourceDetail.length) return "";
+  // 🔴 마을이 안 붙으면 카드 본문이 통째로 비었다. 배지에 "마을 상세 없음"이
+  // 있긴 하지만 툴팁이라 안 읽히고, 사용자에게는 **그냥 아무것도 안 적힌 카드**로
+  // 보인다("동박골은 왜 아무것도 안 적혀있어?"). 비어 있다는 사실보다
+  // **왜 비었는지**가 정보다 — 우리가 뭘 못 했는지 그 자리에서 말한다.
+  if (!stats.length && !card.village_note && !resources.length && !resourceDetail.length) {
+    return (
+      '<p class="village-missing">' +
+        "<strong>마을 현황을 붙이지 못했습니다.</strong> " +
+        "이 지구의 법정동코드와 일치하는 마을 기록이 농촌마을현황에 없어 " +
+        "인구·고령화율·빈집을 표시할 수 없습니다 — 전국 167곳 중 16곳이 같습니다. " +
+        "읍면동만 맞춰 다른 마을 수치를 가져다 붙이지는 않습니다." +
+      "</p>"
+    );
+  }
 
   const head = stats.length
     ? '<p class="village-summary">' +
