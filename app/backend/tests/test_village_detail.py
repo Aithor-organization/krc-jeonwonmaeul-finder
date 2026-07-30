@@ -157,9 +157,11 @@ def test_village_block_keeps_the_district_vs_village_warning():
     """새 값을 얹으면서 '지구가 아니라 마을 값'이라는 경고가 사라지면 안 된다.
 
     이 경고가 없어서 "빈집 0인데 왜 추천하냐"는 오독이 실제로 나왔다.
+    문구는 이후 "분양 대상이 아니다"까지 담도록 강화됐다.
     """
     app_js = client.get("/app.js").text
-    assert "이 지구가 아니라 같은 법정동 마을의 현황입니다" in app_js
+    assert "이 지구가 아니라" in app_js and "기존 마을" in app_js
+    assert "분양 대상이 아니며" in app_js
 
 
 def test_search_response_actually_fills_the_new_fields():

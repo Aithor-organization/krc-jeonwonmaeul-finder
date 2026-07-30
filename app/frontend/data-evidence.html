@@ -179,7 +179,7 @@
         <table class="field-table">
           <thead><tr><th>항목</th><th>원본 필드</th><th class="r">채움률</th><th>쓰임</th></tr></thead>
           <tbody>
-            <tr><td>빈집수</td><td><code>villHouseEmpty</code></td><td class="r">78%</td><td><span class="pill normal">점수 반영</span></td></tr>
+            <tr><td>마을 빈집 <small>(분양 대상 아님)</small></td><td><code>villHouseEmpty</code></td><td class="r">78%</td><td><span class="pill caution">표시만</span></td></tr>
             <tr><td>인구</td><td><code>vill{Male,Female}Age_*Cnt</code> 16칸 합</td><td class="r">73%</td><td><span class="pill normal">점수 반영</span></td></tr>
             <tr><td>고령화율</td><td>65세 이상 2칸 ÷ 위 16칸 합</td><td class="r">73%</td><td>표시</td></tr>
             <tr><td>총주택수</td><td><code>villHouseTotCnt</code></td><td class="r">73%</td><td>인구 0 판별</td></tr>
@@ -190,6 +190,7 @@
           </tbody>
         </table>
       </div>
+      <p class="live-status"><strong>🔴 분양받는 것은 &lsquo;계획세대수&rsquo;이고, &lsquo;마을 빈집&rsquo;은 분양 대상이 아닙니다.</strong> 전원마을 조성사업은 <strong>새 택지를 조성해 주택을 분양하는 신규마을 조성</strong>이라(농림축산식품부 「신규마을조성(전원마을 등)」), 실제로 들어가는 집은 그 지구에 <strong>새로 짓는 계획세대수</strong>입니다. 화면에 함께 보여 주는 <strong>마을 빈집</strong>은 그 옆에 있는 <strong>기존 마을에 방치된 집의 수</strong>로, 마을이 활기가 있는지 가늠하는 참고값일 뿐 분양받을 수 있는 집이 아닙니다. 이 둘을 혼동하면 &ldquo;빈집이 없는데 왜 추천하나&rdquo;가 되므로 카드에도 라벨을 <code>마을 빈집</code>으로 적고 분양 대상이 아님을 함께 표시합니다.</p>
       <p class="live-status"><strong>고령화율은 원본에 없는 값입니다.</strong> API가 주는 것은 성별·연령대별 인원 16칸이고, 저희가 65세 이상 2칸을 나눠 계산합니다. 그래서 근거 패널에는 필드 이름 대신 <strong>산식을 그대로 적습니다</strong> — 없는 필드가 있는 것처럼 보이지 않도록. 실측 분포는 최저 5%, 중앙값 31%, 최고 90%입니다.</p>
       <p class="live-status"><strong>주택 연식은 값이 있어도 쓰지 않습니다.</strong> 127곳 중 57곳에 기록이 있지만, 5개 구간의 합이 총주택수와 맞는 경우가 23곳(40%)뿐이라 구간 라벨이 무엇을 뜻하는지 확정할 수 없습니다. &ldquo;30년 이상 N채&rdquo;라고 썼다가 라벨 의미가 다르면 그건 <strong>추측을 사실로 파는 것</strong>이라 싣지 않았습니다. <strong>슬레이트 주택의 0도 같은 이유로 뺐습니다</strong> — 0이 &lsquo;없음&rsquo;인지 &lsquo;미조사&rsquo;인지 구분되지 않아, 근거 없는 안심을 주지 않기 위해 1채 이상일 때만 표시합니다.</p>
       <p class="live-status"><strong>마을 자원은 127곳 중 17곳에만 등록돼 있어 점수에 넣지 않습니다.</strong> 농산물 목록·특산물·경관처럼 가장 구체적인 정보라 있는 곳에는 원문 그대로 보여 주지만, 13%만 판정할 수 있는 조건을 점수화하면 <strong>등록되지 않은 110곳이 &lsquo;자원이 없는 마을&rsquo;로 깎입니다</strong>. 미등록과 부재는 다릅니다. 항목을 &lsquo;생산·경제&rsquo;와 &lsquo;자연&rsquo;으로만 묶는 것도 같은 이유입니다 — 필드 이름이 <code>villEconomy…</code>/<code>villNature…</code>라 그만큼은 확실하지만, 개별 항목이 특산물인지 관광자원인지는 저희가 붙이면 추측이 됩니다.</p>

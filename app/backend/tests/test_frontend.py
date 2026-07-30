@@ -504,7 +504,10 @@ def test_village_summary_names_its_subject():
     css = client.get("/results.css").text
     assert "주변 마을" in app_js
     assert "card.village_name" in app_js
-    assert "적합도 점수에 반영하지 않습니다" in app_js
+    assert "적합도 점수에도 반영하지 않습니다" in app_js
+    # 대상뿐 아니라 "분양 대상인가"까지 밝혀야 한다 — 그게 없어서
+    # "빈집이 없는데 왜 추천하냐"가 나왔다.
+    assert "분양 대상이 아니며" in app_js
     assert ".village-note" in css
 
 

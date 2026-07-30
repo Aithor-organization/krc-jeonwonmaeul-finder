@@ -43,15 +43,16 @@ def test_three_vacant_states_all_exist_in_the_data():
 def test_zero_and_unknown_are_worded_differently():
     """🔴 핵심 — 조사된 0과 미조사가 같은 문구면 구분되지 않는다."""
     js = app_js()
-    assert '"빈집 없음"' in js, "조사돼서 0인 곳을 침묵시키면 안 된다"
-    assert "빈집 미조사" in js, "조사 안 된 곳도 그렇다고 말해야 한다"
+    # 라벨은 "마을 빈집" — 그냥 "빈집"이면 분양받을 집으로 읽힌다
+    assert '"마을 빈집 없음"' in js, "조사돼서 0인 곳을 침묵시키면 안 된다"
+    assert "마을 빈집 미조사" in js, "조사 안 된 곳도 그렇다고 말해야 한다"
     assert "card.vacant_houses === 0" in js, "0과 null을 구분하는 분기가 있어야 한다"
 
 
 def test_vacant_count_is_still_shown_when_present():
     """1호 이상은 그대로 숫자로 — 빈집 20호인 마을이 2곳 있다."""
     js = app_js()
-    assert '"빈집 " + esc(formatNumber(card.vacant_houses, "호"))' in js
+    assert '"마을 빈집 " + esc(formatNumber(card.vacant_houses, "호"))' in js
 
 
 def test_unknown_state_is_visually_distinct():

@@ -258,7 +258,19 @@ const UNKNOWN_REASON = {
  */
 const METRIC_SCOPE = {
   분양율: "이 지구의 계획세대수 대비 분양된 비율입니다. 시군구·지역 전체 값이 아닙니다.",
-  계획세대수: "이 지구에 조성 예정인 세대 수입니다.",
+  계획세대수: "이 지구에 새로 조성되는 세대 수 — 실제로 분양받는 대상입니다.",
+};
+
+/** 값이 있을 때 붙는 한 줄. "이게 뭔데?"에 그 자리에서 답한다.
+ *
+ * 🔴 "빈집이 없는데 왜 추천하냐"는 질문이 나왔다. 전원마을 조성사업은
+ * **새 택지를 닦고 주택을 분양하는 신규마을 조성**이라(농식품부 「신규마을조성
+ * (전원마을 등)」), 들어가는 집은 이 지구에 새로 짓는 것이지 옆 마을의
+ * 빈집이 아니다. 그런데 카드가 "계획세대수 31세대"라고만 적어 두고 그게
+ * 분양 대상이라는 말을 안 했다 — 그래서 빈집이 들어갈 집으로 읽혔다.
+ */
+const METRIC_HINT = {
+  계획세대수: "이 지구에 새로 조성 — 분양 대상",
 };
 
 /** 분양율 수치가 없어도 진행단계가 답을 주는 경우가 있다.
@@ -302,7 +314,8 @@ const RATE_STATUS = {
 
 function metricHtml(key, value, suffix, reasonOverride, status) {
   const unknown = value == null;
-  const text = unknown ? (reasonOverride || UNKNOWN_REASON[key]) : "";
+  // 값이 없으면 왜 없는지, 있으면 그게 무엇인지 — 어느 쪽이든 한 줄은 붙는다.
+  const text = unknown ? (reasonOverride || UNKNOWN_REASON[key]) : (METRIC_HINT[key] || "");
   const line = text ? '<div class="metric-reason">' + esc(text) + "</div>" : "";
   const scope = METRIC_SCOPE[key] || "";
   const badge = status && RATE_STATUS[status]
@@ -394,13 +407,18 @@ function villageBlockHtml(card) {
   // 틀렸다** — 조사돼서 0인 곳과 아예 조사가 안 된 곳이 똑같이 안 보였다.
   // "여기 빈집이 있는 곳인지 확실하냐"는 질문이 바로 여기서 나왔다.
   // 모르는 것을 모른다고 적는 게 이 서비스의 전부인데, 아는 것까지 지웠다.
+  //
+  // 🔴 라벨은 반드시 "마을 빈집"이다. 그냥 "빈집"으로 두면 **분양받아 들어갈
+  // 집**으로 읽힌다 — 실제로 "빈집이 없는데 왜 추천하냐"는 질문이 나왔다.
+  // 전원마을은 새 택지를 조성해 분양하는 사업이라 들어가는 집은 계획세대수
+  // 쪽이고, 이 값은 옆 마을에 방치된 집의 수(마을 쇠퇴 지표)다.
   if (card.vacant_houses) {
-    stats.push("빈집 " + esc(formatNumber(card.vacant_houses, "호")));
+    stats.push("마을 빈집 " + esc(formatNumber(card.vacant_houses, "호")));
   } else if (card.vacant_houses === 0) {
-    stats.push("빈집 없음");
+    stats.push("마을 빈집 없음");
   } else if (card.village_name) {
     // 마을은 붙었는데 빈집만 비어 있는 경우 (마을 자체가 안 붙으면 아래 안내가 담당)
-    stats.push('<span class="stat-unknown">빈집 미조사</span>');
+    stats.push('<span class="stat-unknown">마을 빈집 미조사</span>');
   }
   // 🔴 슬레이트 주택은 카드에서 뺐다. 석면 우려 신호로 넣었지만 "2채"라는
   // 숫자만으로는 그게 많은지 적은지 알 수 없고(총주택 대비 중앙값 17%),
@@ -433,7 +451,11 @@ function villageBlockHtml(card) {
     ? '<p class="village-summary">' +
         "<strong>주변 마을" + (card.village_name ? " " + esc(card.village_name) : "") + "</strong> · " +
         stats.join(" · ") +
-        '<span class="village-note">이 지구가 아니라 같은 법정동 마을의 현황입니다 — 적합도 점수에 반영하지 않습니다.</span>' +
+        // "무엇의 값인가"만 적고 "그래서 뭔데"를 안 적었더니, 마을 빈집이
+        // 분양받을 집으로 읽혔다. 분양 대상이 어느 쪽인지 여기서 못박는다.
+        '<span class="village-note">이 지구가 아니라 <strong>옆에 있는 기존 마을</strong>의 현황입니다. ' +
+          "<strong>분양 대상이 아니며</strong> 적합도 점수에도 반영하지 않습니다 — " +
+          "실제로 분양받는 것은 위의 계획세대수입니다.</span>" +
       "</p>"
     : "";
 
