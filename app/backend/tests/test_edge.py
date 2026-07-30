@@ -29,11 +29,31 @@ def test_scoring_no_rate_key():
     assert grade == "C"  # village 없음
 
 
-def test_scoring_vacant_preference_hit():
-    p = ParsedQuery(preferences=["빈집적음"])
+def test_vacant_preference_is_no_longer_scored():
+    """🔴 '빈집적음'은 데이터는 있지만 **변별이 안 된다**.
+
+    실측: 마을 127곳 중 빈집 0이 65곳(51%), 1~7이 32곳, 20 이상은 2곳뿐.
+    옛 기준(빈집 ≤ 10)은 값이 있는 곳의 97%가 통과해 사실상 항상 부합이었다.
+    절반이 같은 값인 필드로 순위를 매기면 점수가 오르는 이유를 설명할 수 없다.
+
+    그래서 판정 불가로 옮기고 그 사실을 사용자에게 알린다 — 조용히 무시하면
+    "빈집 적은 곳"을 적은 사람이 반영됐다고 믿는다.
+    """
+    assert "빈집적음" not in scoring.SCORABLE_PREFS
+    assert "빈집적음" in scoring.UNSCORABLE_PREFS
+    assert "127곳 중 65곳" in scoring.UNSCORABLE_PREFS["빈집적음"]
+
+
+def test_vacant_preference_does_not_change_the_score():
+    """판정 불가로 옮겼으니 붙이든 안 붙이든 점수가 같아야 한다.
+
+    (전에 '스마트팜'에서 겪은 것과 같은 함정 — 조건을 더 적었는데 점수가
+    떨어지면 사용자는 영문을 모른다.)
+    """
     village = {"빈집수": 5, "인구": 300, "법정동코드": "44710310", "시군구": "예산군"}
-    _, _, reasons = scoring.score_card(p, BASE_SALE, village)
-    assert any("선호" in r for r in reasons)
+    with_pref = scoring.score_card(ParsedQuery(preferences=["빈집적음"]), BASE_SALE, village)[0]
+    without = scoring.score_card(ParsedQuery(), BASE_SALE, village)[0]
+    assert with_pref == without
 
 
 def test_scoring_ignores_prefs_it_cannot_judge():

@@ -136,6 +136,11 @@ class SearchRequest(BaseModel):
     query: str | None = None
     structured: ParsedQuery | None = None
     filters: SearchFilters | None = None
+    # 🔴 이 필드가 없어서 요청에 top_n을 실어도 **조용히 무시**됐다.
+    # orchestrator는 top_n을 받는데 요청 스키마에 없으니 Pydantic이 버렸고,
+    # 무엇을 넣든 항상 3건만 돌아왔다. 전체 목록 페이지가 필요해지며 드러났다.
+    # 상한 167 = 원천 지구 전체 (그 이상은 존재하지 않는다).
+    top_n: int = Field(default=3, ge=1, le=167)
     # 사용자가 화면에서 직접 입력하는 OpenAI 키(BYOK). 서버는 저장·로깅하지 않고
     # 해당 요청의 파싱에만 쓰고 버린다. 응답에도 절대 포함하지 않는다.
     openai_api_key: str | None = None

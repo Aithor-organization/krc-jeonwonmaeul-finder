@@ -31,6 +31,31 @@ body.results-mode .results-section {
   font-size: 38px;
 }
 
+/* "조건 충족 56곳 · 상위 3곳 표시"라고 적어 놓고 나머지를 볼 방법이 없었다 */
+.see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--forest-700);
+  border-radius: 999px;
+  color: var(--forest-700);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 160ms ease-out, color 160ms ease-out;
+}
+
+.see-all::after {
+  content: "→";
+}
+
+.see-all:hover {
+  background: var(--forest-700);
+  color: var(--white);
+}
+
 .results-lead {
   margin: 8px 0 0;
   color: var(--muted);

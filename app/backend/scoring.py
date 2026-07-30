@@ -13,10 +13,9 @@ _STAGE_SCORE = {"분양중": 1.0, "분양예정": 0.6, "분양완료": 0.1}
 WEIGHTS = {"진행단계": 0.5, "가용성": 0.3, "선호매칭": 0.2}
 FORMULA = "0.5 × 진행단계 + 0.3 × 가용성 + 0.2 × 선호매칭"
 
-# 판정할 수 있는 선호 — 실제로 대조할 필드가 있는 것만.
-#   조용함   ← 농촌마을현황 인구
-#   빈집적음 ← 농촌마을현황 빈집수
-SCORABLE_PREFS = {"조용함", "빈집적음"}
+# 판정할 수 있는 선호 — 실제로 대조할 필드가 있고 **변별이 되는 것**만.
+#   조용함 ← 농촌마을현황 인구
+SCORABLE_PREFS = {"조용함"}
 
 # 인식은 하지만 판정할 데이터가 없는 선호.
 #
@@ -29,6 +28,11 @@ SCORABLE_PREFS = {"조용함", "빈집적음"}
 # 마을 연혁·지리 서술이라 선호 매칭에 쓰면 노이즈만 늘어 인덱스에서 제외했다.
 # 그 결정의 결과를 여기서 정직하게 받는다 — 판정 못 하면 점수에 넣지 않는다.
 UNSCORABLE_PREFS = {
+    # 🔴 데이터는 있는데 **변별이 안 되는** 경우. 위 다섯과 이유가 다르다.
+    # 실측: 마을 127곳 중 빈집 0이 65곳(51%), 1~7이 32곳, 20 이상은 2곳뿐.
+    # 옛 기준(빈집 ≤ 10)은 값이 있는 곳의 97%가 통과해 사실상 항상 부합이었다.
+    # 절반이 같은 값인 필드로 순위를 매기면, 점수가 오르는 이유를 설명할 수 없다.
+    "빈집적음": "빈집 수의 절반이 0이라 마을을 가려내지 못합니다 (127곳 중 65곳)",
     "교통편의": "도로·대중교통 데이터가 공공데이터에 없습니다",
     "스마트팜": "스마트팜 시설 정보가 공공데이터에 없습니다",
     "청년창업": "청년창업 지원 여부가 공공데이터에 없습니다",
@@ -87,9 +91,7 @@ def _terms(parsed, sale: dict, village: dict | None) -> tuple[list[dict], list[s
         vac = village.get("빈집수")
         pop = village.get("인구")
     for p in prefs:
-        if p == "빈집적음" and isinstance(vac, (int, float)) and vac <= 10:
-            pref_hits += 1
-        elif p == "조용함" and (isinstance(pop, (int, float)) and pop < 500 or "조용" in resources):
+        if p == "조용함" and (isinstance(pop, (int, float)) and pop < 500 or "조용" in resources):
             pref_hits += 1
     # prefs는 이미 SCORABLE_PREFS로 걸러져 있으므로 판정 불가 분기가 필요 없다
     pref_score = (pref_hits / len(prefs)) if prefs else 0.5

@@ -51,7 +51,8 @@ def regions() -> dict:
 def search(req: SearchRequest) -> SearchResponse:
     # openai_api_key는 이 호출의 파싱에만 쓰이고 저장·로깅되지 않는다 (BYOK)
     return orch.search(query=req.query, structured=req.structured,
-                       api_key=req.openai_api_key, filters=req.filters)
+                       api_key=req.openai_api_key, filters=req.filters,
+                       top_n=req.top_n)
 
 
 @app.get("/api/village/{gu_id}")

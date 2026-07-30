@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="조건을 충족한 전원마을 전체 목록. 상위 3곳만이 아니라 걸러진 모든 후보를 한 표에서 확인합니다." />
+  <meta name="theme-color" content="#123b2a" />
+  <title>전체 결과 | 전원마을 파인더</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/sections.css" />
+  <link rel="stylesheet" href="/pages.css" />
+</head>
+<body>
+  <a class="skip-link" href="#all-results">본문으로 바로가기</a>
+  <div class="brand-rule" aria-hidden="true"></div>
+
+  <section class="page-hero">
+    <header class="site-header" aria-label="주요 메뉴">
+      <a class="brand" href="/index.html" aria-label="전원마을 파인더 홈">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-5.5 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg></span>
+        <span class="brand-copy"><strong>전원마을 파인더</strong><small>KRC 개방 공공데이터 활용</small></span>
+      </a>
+      <nav class="header-nav" aria-label="페이지 탐색">
+        <a href="/how-it-works.html">작동 방식</a>
+        <a href="/data-evidence.html">데이터 근거</a>
+        <a href="/settings.html">설정</a>
+        <a class="nav-cta" href="/index.html#search">마을 찾기</a>
+      </nav>
+    </header>
+
+    <div class="page-hero-inner">
+      <p class="breadcrumb"><a href="/index.html">홈</a> <span>/ 전체 결과</span></p>
+      <p class="page-eyebrow">All matches</p>
+      <h1 id="all-title">조건을 충족한<br />전체 목록입니다.</h1>
+      <p class="page-lead" id="all-lead">불러오는 중…</p>
+    </div>
+  </section>
+
+  <main id="all-results">
+    <section class="page-section white">
+      <div class="section-shell">
+        <p class="live-status" id="all-context">홈 화면은 상위 3곳만 보여 줍니다. 이 페이지는 <strong>같은 조건을 통과한 모든 지구</strong>를 점수순으로 나열합니다 — 3곳으로 줄인 것이 무엇을 감췄는지 직접 확인하실 수 있습니다.</p>
+
+        <div class="table-wrap">
+          <table class="field-table" id="all-table" aria-label="조건을 충족한 전원마을 전체 목록">
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>지구</th>
+                <th>지역</th>
+                <th>진행단계</th>
+                <th class="r">계획세대수</th>
+                <th>분양율</th>
+                <th>주변 마을</th>
+                <th class="r">적합도</th>
+              </tr>
+            </thead>
+            <tbody id="all-body">
+              <tr><td colspan="8">불러오는 중…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="live-status" id="all-note"></p>
+        <p style="margin-top:28px;"><a class="nav-cta" href="/index.html#search">조건 다시 입력</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-5.5 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg></span><strong>전원마을 파인더</strong></div>
+        <p class="footer-lead">지금 분양 중인 전원마을을 공공데이터 근거와 함께 찾아주는 검색 서비스입니다. 공공데이터 기반 참고정보이며 최종 계약·분양은 공식 기관 확인이 필요합니다.</p>
+      </div>
+      <div class="footer-col"><strong>페이지</strong><div class="footer-links"><a href="/index.html">홈 · 마을 찾기</a><a href="/how-it-works.html">작동 방식</a><a href="/data-evidence.html">데이터 근거</a><a href="/settings.html">설정</a></div></div>
+      <div class="footer-col"><strong>데이터 출처 · data.go.kr</strong><div class="footer-sources"><span>전원마을 분양정보 <code>15104395</code></span><span>농촌마을현황 <code>15104291</code></span><span>논가뭄지도 <code>15117185</code></span></div></div>
+    </div>
+    <div class="footer-bar"><div class="footer-bar-inner"><span>제3회 KRC 인공지능 디지털 혁신 공모전 · 서비스개발 부문</span><span class="mode-flag">sample-mode로 동작 중</span></div></div>
+  </footer>
+
+  <script src="/pages.js"></script>
+  <script src="/all-results.js"></script>
+</body>
+</html>

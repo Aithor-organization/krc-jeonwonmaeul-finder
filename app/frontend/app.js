@@ -12,6 +12,7 @@ const el = {
   results: $("#view-results"),
   resultsTitle: $("#results-title"),
   resultsLead: $("#results-lead"),
+  seeAll: $("#see-all"),
   tieNote: $("#tie-note"),
   cards: $("#cards"),
   status: $("#status"),
@@ -386,10 +387,16 @@ function villageBlockHtml(card) {
       esc(String(card.elderly_ratio)) + "%</span>"
     );
   }
-  if (card.vacant_houses != null) stats.push("빈집 " + esc(formatNumber(card.vacant_houses, "호")));
-  // 슬레이트는 값이 있을 때만 싣는다 — 0이 '없음'인지 '미조사'인지 원천에서
-  // 구분되지 않아, 91곳의 0을 "석면 없음"으로 보이면 근거 없는 안심이 된다.
-  if (card.slate_houses) stats.push("슬레이트 주택 " + esc(formatNumber(card.slate_houses, "채")));
+  // 빈집은 **1호 이상일 때만** 싣는다.
+  // 실측: 127곳 중 65곳(51%)이 0이다. 절반이 같은 값인 항목을 카드마다 찍으면
+  // 마을을 구분해 주지 못하면서 자리만 차지한다. 0이 아닌 곳에서는 여전히
+  // 정보다(빈집 20호인 마을이 2곳 있다).
+  if (card.vacant_houses) stats.push("빈집 " + esc(formatNumber(card.vacant_houses, "호")));
+  // 🔴 슬레이트 주택은 카드에서 뺐다. 석면 우려 신호로 넣었지만 "2채"라는
+  // 숫자만으로는 그게 많은지 적은지 알 수 없고(총주택 대비 중앙값 17%),
+  // 값이 있는 곳도 36/127뿐이라 대부분의 카드에서 침묵한다. 무엇보다
+  // **내가 들어갈 집이 슬레이트인지**를 말해 주지 않는다. 근거 패널과
+  // 데이터 근거 페이지에는 그대로 남아 있다.
 
   const groupsOf = (obj) => (obj && typeof obj === "object"
     ? Object.entries(obj).filter(([, list]) => Array.isArray(list) && list.length)
@@ -547,6 +554,7 @@ function cardHtml(card, drought, index, terms) {
 function resetResultsHeading(title) {
   el.resultsTitle.textContent = title;
   el.resultsLead.textContent = "";
+  if (el.seeAll) el.seeAll.hidden = true;
   if (el.tieNote) {
     el.tieNote.textContent = "";
     el.tieNote.hidden = true;
@@ -562,6 +570,21 @@ function resetResultsHeading(title) {
  * 숫자는 trace.funnel에서 가져온다. 카드 개수만 세면 "상위 3건 표시" 제한에
  * 걸린 값이라 실제 조건 충족 건수와 다르다.
  */
+/** 전체 목록 페이지로 넘길 검색 조건.
+ *
+ * 화면에서 읽어 URL 쿼리로 만든다 — 새로고침·공유가 되어야 하므로
+ * sessionStorage가 아니라 주소에 싣는다.
+ */
+function allResultsQuery() {
+  const params = new URLSearchParams();
+  const query = el.query.value.trim();
+  if (query) params.set("q", query);
+  if (el.selSido.value) params.set("sido", el.selSido.value);
+  if (el.selSigungu.value) params.set("sigungu", el.selSigungu.value);
+  if (el.selStage.value) params.set("stage", el.selStage.value);
+  return params.toString();
+}
+
 function renderResultsHeading(parsed, trace, shown) {
   const region = [parsed && parsed.region && parsed.region.sido,
                   parsed && parsed.region && parsed.region.sigungu].filter(Boolean).join(" ");
@@ -577,6 +600,17 @@ function renderResultsHeading(parsed, trace, shown) {
   if (matched != null) bits.push("조건 충족 " + formatNumber(matched, "곳"));
   if (matched != null && matched > shown) bits.push("상위 " + shown + "곳 표시");
   el.resultsLead.textContent = bits.join(" · ");
+
+  // 🔴 "조건 충족 56곳 · 상위 3곳 표시"라고 적어 놓고 나머지 53곳을 볼 방법이
+  // 없었다. 계산을 공개한다면서 결과의 대부분을 감춘 셈이다.
+  if (el.seeAll) {
+    const hidden = matched != null && matched > shown;
+    el.seeAll.hidden = !hidden;
+    if (hidden) {
+      el.seeAll.textContent = "조건 충족 " + matched + "곳 전체 보기";
+      el.seeAll.href = "/all-results.html?" + allResultsQuery();
+    }
+  }
 
   el.resultsTitle.setAttribute(
     "aria-label",
